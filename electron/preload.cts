@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
 contextBridge.exposeInMainWorld('desktop', {
-  getHealth: () => ipcRenderer.invoke('lobby:health'),
+  request: (method: 'GET' | 'PUT', path: string, body?: unknown) =>
+    ipcRenderer.invoke('lobby:request', method, path, body),
 });

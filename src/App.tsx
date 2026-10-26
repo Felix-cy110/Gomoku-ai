@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ArrowDownLeft,
   ArrowRight,
@@ -23,8 +23,17 @@ import Modal from './components/Modal';
 import SetupDialog from './components/SetupDialog';
 import LocalGame from './components/LocalGame';
 import { DEFAULT_PREFERENCES, DIFFICULTIES, type GameMode, type GamePreferences } from './types';
+import { loadPreferences } from './api';
 
 type Panel = 'rules' | 'history' | 'settings' | null;
+
+function readSoundPreference() {
+  try {
+    return localStorage.getItem('yijian.sound') !== 'off';
+  } catch {
+    return true;
+  }
+}
 
 function playStoneSound() {
   const context = new AudioContext();
@@ -69,9 +78,32 @@ export default function App() {
   const [setupMode, setSetupMode] = useState<GameMode | null>(null);
   const [localGame, setLocalGame] = useState(false);
   const [preferences, setPreferences] = useState<GamePreferences>(DEFAULT_PREFERENCES);
-  const [hasConfigured, setHasConfigured] = useState(false);
-  const [sound, setSound] = useState(true);
+  const [hasSaved, setHasSaved] = useState(false);
+  const [sound, setSound] = useState(readSoundPreference);
   const [toast, setToast] = useState('');
+  const [loaded, setLoaded] = useState(false);
+  const [loadingError, setLoadingError] = useState(false);
+  const activeRef = useRef(true);
+
+  useEffect(() => {
+    activeRef.current = true;
+    loadPreferences()
+      .then((saved) => {
+        if (activeRef.current) {
+          setPreferences(saved);
+          setLoaded(true);
+        }
+      })
+      .catch(() => {
+        if (activeRef.current) {
+          setLoadingError(true);
+          setLoaded(true);
+        }
+      });
+    return () => {
+      activeRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (!toast) return;
@@ -82,6 +114,11 @@ export default function App() {
   function toggleSound() {
     const next = !sound;
     setSound(next);
+    try {
+      localStorage.setItem('yijian.sound', next ? 'on' : 'off');
+    } catch {
+      /* A restricted browser can still use an in-memory preference. */
+    }
     if (next) {
       try {
         playStoneSound();
@@ -118,11 +155,12 @@ export default function App() {
     setPanel(null);
   }
 
-  function onConfirm(next: GamePreferences) {
-    setPreferences(next);
-    setHasConfigured(true);
+  function onSave(saved: GamePreferences) {
+    setPreferences(saved);
+    setHasSaved(true);
+    setLoadingError(false);
     setSetupMode(null);
-    setToast('单人对局设置已应用，仅在本次打开期间有效');
+    setToast(`${saved.mode === 'single' ? '单人' : '双人'}对局设置已保存，下次打开依然保留`);
   }
 
   const difficulty = DIFFICULTIES.find((item) => item.value === preferences.difficulty)?.label;
@@ -280,7 +318,7 @@ export default function App() {
                 </div>
                 <div className="mode-grid">
                   <article
-                    className={`mode-card single-card ${hasConfigured && preferences.mode === 'single' ? 'chosen' : ''}`}
+                    className={`mode-card single-card ${hasSaved && preferences.mode === 'single' ? 'chosen' : ''}`}
                   >
                     <div className="card-topline">
                       <span className="mode-label">
@@ -316,8 +354,9 @@ export default function App() {
                     <button
                       className="mode-button single-button"
                       onClick={() => chooseMode('single')}
+                      disabled={!loaded}
                     >
-                      {hasConfigured && preferences.mode === 'single' ? (
+                      {hasSaved && preferences.mode === 'single' ? (
                         <>
                           <Check size={17} />
                           已选择单人 · 调整设置
@@ -371,11 +410,11 @@ export default function App() {
                     </button>
                   </article>
                 </div>
-                {hasConfigured && (
+                {hasSaved && (
                   <div className="selection-summary" aria-live="polite">
                     <span>
                       <Check size={15} />
-                      本次设置
+                      已为你记住
                     </span>
                     <p>
                       {`人机对弈 · ${difficulty} · ${preferences.color === 'black' ? '执黑先行' : '执白后行'}`}
@@ -385,6 +424,11 @@ export default function App() {
                       <ChevronRight size={14} />
                     </button>
                   </div>
+                )}
+                {loadingError && (
+                  <p className="connection-note" role="status">
+                    单人设置服务暂未连接，双人对弈仍可直接开始。
+                  </p>
                 )}
               </section>
 
@@ -413,11 +457,7 @@ export default function App() {
       </div>
 
       {setupMode && (
-        <SetupDialog
-          preferences={preferences}
-          onClose={() => setSetupMode(null)}
-          onConfirm={onConfirm}
-        />
+        <SetupDialog preferences={preferences} onClose={() => setSetupMode(null)} onSave={onSave} />
       )}
       {panel === 'rules' && (
         <Modal
@@ -520,7 +560,7 @@ export default function App() {
             </div>
           </div>
           <p className="settings-footnote">
-            设置仅在本次打开期间有效，刷新或重启后恢复默认。界面动效跟随系统的减少动态效果偏好。
+            设置自动保存在当前设备。界面动效会跟随系统的减少动态效果偏好。
           </p>
         </Modal>
       )}

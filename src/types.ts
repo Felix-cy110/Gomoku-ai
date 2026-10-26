@@ -6,12 +6,16 @@ export interface GamePreferences {
   mode: GameMode;
   difficulty: Difficulty;
   color: StoneColor;
+  playerOne: string;
+  playerTwo: string;
 }
 
 export const DEFAULT_PREFERENCES: GamePreferences = {
   mode: 'single',
   difficulty: 'normal',
   color: 'black',
+  playerOne: '棋手一',
+  playerTwo: '棋手二',
 };
 
 export const DIFFICULTIES = [
@@ -23,7 +27,7 @@ export const DIFFICULTIES = [
 declare global {
   interface Window {
     desktop?: {
-      getHealth: () => Promise<{ status: string; service: string; version: string }>;
+      request: (method: 'GET' | 'PUT', path: string, body?: GamePreferences) => Promise<unknown>;
     };
   }
 }
