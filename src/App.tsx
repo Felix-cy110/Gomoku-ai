@@ -21,6 +21,7 @@ import {
 import BoardArt from './components/BoardArt';
 import Modal from './components/Modal';
 import SetupDialog from './components/SetupDialog';
+import LocalGame from './components/LocalGame';
 import { DEFAULT_PREFERENCES, DIFFICULTIES, type GameMode, type GamePreferences } from './types';
 import { loadPreferences } from './api';
 
@@ -75,6 +76,7 @@ function ModeIllustration({ mode }: { mode: GameMode }) {
 export default function App() {
   const [panel, setPanel] = useState<Panel>(null);
   const [setupMode, setSetupMode] = useState<GameMode | null>(null);
+  const [localGame, setLocalGame] = useState(false);
   const [preferences, setPreferences] = useState<GamePreferences>(DEFAULT_PREFERENCES);
   const [hasSaved, setHasSaved] = useState(false);
   const [sound, setSound] = useState(readSoundPreference);
@@ -127,7 +129,7 @@ export default function App() {
     setToast(next ? '落子音效已开启' : '落子音效已关闭');
   }
 
-  function chooseMode(mode: GameMode) {
+  function stoneSound() {
     if (sound) {
       try {
         playStoneSound();
@@ -135,7 +137,22 @@ export default function App() {
         /* Audio is optional. */
       }
     }
-    setSetupMode(mode);
+  }
+
+  function chooseMode(mode: GameMode) {
+    setToast('');
+    if (mode === 'local') {
+      setPanel(null);
+      setLocalGame(true);
+    } else {
+      stoneSound();
+      setSetupMode('single');
+    }
+  }
+
+  function goHome() {
+    setLocalGame(false);
+    setPanel(null);
   }
 
   function onSave(saved: GamePreferences) {
@@ -157,7 +174,7 @@ export default function App() {
           aria-label="弈间首页"
           onClick={(event) => {
             event.preventDefault();
-            setPanel(null);
+            goHome();
           }}
         >
           <span className="brand-mark">
@@ -177,7 +194,7 @@ export default function App() {
             <button
               className={`nav-item ${panel !== 'history' ? 'active' : ''}`}
               aria-label="对弈大厅"
-              onClick={() => setPanel(null)}
+              onClick={goHome}
               aria-current={panel !== 'history' ? 'page' : undefined}
             >
               <Grid2X2 size={19} />
@@ -231,7 +248,7 @@ export default function App() {
           <div className="breadcrumb">
             <span>棋室</span>
             <ChevronRight size={13} />
-            <strong>对弈大厅</strong>
+            <strong>{localGame ? '双人对弈' : '对弈大厅'}</strong>
           </div>
           <div className="topbar-actions">
             <span className="welcome">好久不见，来下一局。</span>
@@ -252,208 +269,195 @@ export default function App() {
         </header>
 
         <main>
-          <section className="hero" aria-labelledby="hero-heading">
-            <div className="hero-content">
-              <div className="hero-eyebrow">
-                <span />
-                HELLO, GOMOKU.
-              </div>
-              <h1 id="hero-heading">
-                方寸之间，
-                <br />
-                <span>落子有趣。</span>
-                <span className="title-period" />
-              </h1>
-              <p className="hero-description">
-                与 AI 切磋，或邀好友同坐。
-                <br />
-                从一颗棋子开始，享受纯粹的思考时光。
-              </p>
-              <div className="hero-tags">
-                <span>
-                  <Grid2X2 size={14} />
-                  经典五子棋
-                </span>
-                <i />
-                <span>
-                  <Leaf size={14} />
-                  简单，却不止简单
-                </span>
-              </div>
-            </div>
-            <BoardArt />
-            <span className="hero-vertical">黑 白 之 间 · 自 有 天 地</span>
-          </section>
-
-          <section className="mode-section" aria-labelledby="mode-heading">
-            <div className="section-heading">
-              <div>
-                <span className="eyebrow">LET’S PLAY</span>
-                <h2 id="mode-heading">
-                  今天，和谁过招<span>？</span>
-                </h2>
-              </div>
-              <p>选一种方式，开启你的棋间时光</p>
-            </div>
-            <div className="mode-grid">
-              <article
-                className={`mode-card single-card ${hasSaved && preferences.mode === 'single' ? 'chosen' : ''}`}
-              >
-                <div className="card-topline">
-                  <span className="mode-label">
-                    <span className="status-dot" />
-                    单人模式
-                  </span>
-                  <span className="card-index">01</span>
-                </div>
-                <div className="mode-card-body">
-                  <div className="mode-copy">
-                    <h3>
-                      人机对弈
-                      <ArrowRight className="heading-arrow" size={20} />
-                    </h3>
-                    <p>
-                      与 AI 棋逢对手，
-                      <br />
-                      在每一步中，发现更好的自己。
-                    </p>
+          {localGame ? (
+            <LocalGame onExit={goHome} onRules={() => setPanel('rules')} onStone={stoneSound} />
+          ) : (
+            <>
+              <section className="hero" aria-labelledby="hero-heading">
+                <div className="hero-content">
+                  <div className="hero-eyebrow">
+                    <span />
+                    HELLO, GOMOKU.
                   </div>
-                  <ModeIllustration mode="single" />
-                </div>
-                <div className="feature-tags">
-                  <span>
-                    <Sparkles size={13} />
-                    三档难度
-                  </span>
-                  <span>
-                    <ShieldCheck size={13} />
-                    自在练习
-                  </span>
-                </div>
-                <button
-                  className="mode-button single-button"
-                  onClick={() => chooseMode('single')}
-                  disabled={!loaded}
-                >
-                  {hasSaved && preferences.mode === 'single' ? (
-                    <>
-                      <Check size={17} />
-                      已选择单人 · 调整设置
-                    </>
-                  ) : (
-                    <>
-                      选择单人模式
-                      <ArrowRight size={17} />
-                    </>
-                  )}
-                </button>
-              </article>
-              <article
-                className={`mode-card local-card ${hasSaved && preferences.mode === 'local' ? 'chosen' : ''}`}
-              >
-                <div className="card-topline">
-                  <span className="mode-label">
-                    <span className="status-dot" />
-                    双人模式
-                  </span>
-                  <span className="card-index">02</span>
-                </div>
-                <div className="mode-card-body">
-                  <div className="mode-copy">
-                    <h3>
-                      好友对弈
-                      <ArrowRight className="heading-arrow" size={20} />
-                    </h3>
-                    <p>
-                      一方棋盘，两位好友。
-                      <br />
-                      面对面，来一场有来有回的较量。
-                    </p>
+                  <h1 id="hero-heading">
+                    方寸之间，
+                    <br />
+                    <span>落子有趣。</span>
+                    <span className="title-period" />
+                  </h1>
+                  <p className="hero-description">
+                    与 AI 切磋，或邀好友同坐。
+                    <br />
+                    从一颗棋子开始，享受纯粹的思考时光。
+                  </p>
+                  <div className="hero-tags">
+                    <span>
+                      <Grid2X2 size={14} />
+                      经典五子棋
+                    </span>
+                    <i />
+                    <span>
+                      <Leaf size={14} />
+                      简单，却不止简单
+                    </span>
                   </div>
-                  <ModeIllustration mode="local" />
                 </div>
-                <div className="feature-tags">
-                  <span>
-                    <Monitor size={13} />
-                    本地双人
-                  </span>
-                  <span>
-                    <Coffee size={13} />
-                    同享乐趣
-                  </span>
-                </div>
-                <button
-                  className="mode-button local-button"
-                  onClick={() => chooseMode('local')}
-                  disabled={!loaded}
-                >
-                  {hasSaved && preferences.mode === 'local' ? (
-                    <>
-                      <Check size={17} />
-                      已选择双人 · 调整设置
-                    </>
-                  ) : (
-                    <>
-                      选择双人模式
-                      <ArrowRight size={17} />
-                    </>
-                  )}
-                </button>
-              </article>
-            </div>
-            {hasSaved && (
-              <div className="selection-summary" aria-live="polite">
-                <span>
-                  <Check size={15} />
-                  已为你记住
-                </span>
-                <p>
-                  {preferences.mode === 'single'
-                    ? `人机对弈 · ${difficulty} · ${preferences.color === 'black' ? '执黑先行' : '执白后行'}`
-                    : `好友对弈 · ${preferences.playerOne}（黑） vs ${preferences.playerTwo}（白）`}
-                </p>
-                <button onClick={() => chooseMode(preferences.mode)}>
-                  修改
-                  <ChevronRight size={14} />
-                </button>
-              </div>
-            )}
-            {loadingError && (
-              <p className="connection-note" role="status">
-                对局设置服务暂未连接，你仍可浏览首页和调整选项。
-              </p>
-            )}
-          </section>
+                <BoardArt />
+                <span className="hero-vertical">黑 白 之 间 · 自 有 天 地</span>
+              </section>
 
-          <section className="rules-strip" aria-label="五子棋入门">
-            <div className="rules-symbol">
-              <BookOpen size={21} strokeWidth={1.5} />
-            </div>
-            <div className="rules-copy">
-              <h3>初次见面？三十秒认识五子棋。</h3>
-              <p>黑棋先行，轮流落子。横、竖、斜，率先连成五子即获胜。</p>
-            </div>
-            <button className="text-button" onClick={() => setPanel('rules')}>
-              了解规则
-              <ArrowRight size={16} />
-            </button>
-          </section>
-          <footer className="footer">
-            <span>一局一会，乐在其中。</span>
-            <span>
-              MADE FOR THE LOVE OF THE GAME<span className="footer-flower">✳</span>
-            </span>
-          </footer>
+              <section className="mode-section" aria-labelledby="mode-heading">
+                <div className="section-heading">
+                  <div>
+                    <span className="eyebrow">LET’S PLAY</span>
+                    <h2 id="mode-heading">
+                      今天，和谁过招<span>？</span>
+                    </h2>
+                  </div>
+                  <p>选一种方式，开启你的棋间时光</p>
+                </div>
+                <div className="mode-grid">
+                  <article
+                    className={`mode-card single-card ${hasSaved && preferences.mode === 'single' ? 'chosen' : ''}`}
+                  >
+                    <div className="card-topline">
+                      <span className="mode-label">
+                        <span className="status-dot" />
+                        单人模式
+                      </span>
+                      <span className="card-index">01</span>
+                    </div>
+                    <div className="mode-card-body">
+                      <div className="mode-copy">
+                        <h3>
+                          人机对弈
+                          <ArrowRight className="heading-arrow" size={20} />
+                        </h3>
+                        <p>
+                          与 AI 棋逢对手，
+                          <br />
+                          在每一步中，发现更好的自己。
+                        </p>
+                      </div>
+                      <ModeIllustration mode="single" />
+                    </div>
+                    <div className="feature-tags">
+                      <span>
+                        <Sparkles size={13} />
+                        三档难度
+                      </span>
+                      <span>
+                        <ShieldCheck size={13} />
+                        自在练习
+                      </span>
+                    </div>
+                    <button
+                      className="mode-button single-button"
+                      onClick={() => chooseMode('single')}
+                      disabled={!loaded}
+                    >
+                      {hasSaved && preferences.mode === 'single' ? (
+                        <>
+                          <Check size={17} />
+                          已选择单人 · 调整设置
+                        </>
+                      ) : (
+                        <>
+                          选择单人模式
+                          <ArrowRight size={17} />
+                        </>
+                      )}
+                    </button>
+                  </article>
+                  <article className="mode-card local-card">
+                    <div className="card-topline">
+                      <span className="mode-label">
+                        <span className="status-dot" />
+                        双人模式
+                      </span>
+                      <span className="card-index">02</span>
+                    </div>
+                    <div className="mode-card-body">
+                      <div className="mode-copy">
+                        <h3>
+                          好友对弈
+                          <ArrowRight className="heading-arrow" size={20} />
+                        </h3>
+                        <p>
+                          一方棋盘，两位好友。
+                          <br />
+                          面对面，来一场有来有回的较量。
+                        </p>
+                      </div>
+                      <ModeIllustration mode="local" />
+                    </div>
+                    <div className="feature-tags">
+                      <span>
+                        <Monitor size={13} />
+                        本地双人
+                      </span>
+                      <span>
+                        <Coffee size={13} />
+                        同享乐趣
+                      </span>
+                    </div>
+                    <button
+                      className="mode-button local-button"
+                      onClick={() => chooseMode('local')}
+                    >
+                      开始双人对弈
+                      <ArrowRight size={17} />
+                    </button>
+                  </article>
+                </div>
+                {hasSaved && (
+                  <div className="selection-summary" aria-live="polite">
+                    <span>
+                      <Check size={15} />
+                      已为你记住
+                    </span>
+                    <p>
+                      {`人机对弈 · ${difficulty} · ${preferences.color === 'black' ? '执黑先行' : '执白后行'}`}
+                    </p>
+                    <button onClick={() => chooseMode(preferences.mode)}>
+                      修改
+                      <ChevronRight size={14} />
+                    </button>
+                  </div>
+                )}
+                {loadingError && (
+                  <p className="connection-note" role="status">
+                    单人设置服务暂未连接，双人对弈仍可直接开始。
+                  </p>
+                )}
+              </section>
+
+              <section className="rules-strip" aria-label="五子棋入门">
+                <div className="rules-symbol">
+                  <BookOpen size={21} strokeWidth={1.5} />
+                </div>
+                <div className="rules-copy">
+                  <h3>初次见面？三十秒认识五子棋。</h3>
+                  <p>黑棋先行，轮流落子。横、竖、斜，率先连成五子即获胜。</p>
+                </div>
+                <button className="text-button" onClick={() => setPanel('rules')}>
+                  了解规则
+                  <ArrowRight size={16} />
+                </button>
+              </section>
+              <footer className="footer">
+                <span>一局一会，乐在其中。</span>
+                <span>
+                  MADE FOR THE LOVE OF THE GAME<span className="footer-flower">✳</span>
+                </span>
+              </footer>
+            </>
+          )}
         </main>
       </div>
 
       {setupMode && (
-        <SetupDialog
-          mode={setupMode}
-          preferences={preferences}
-          onClose={() => setSetupMode(null)}
-          onSave={onSave}
-        />
+        <SetupDialog preferences={preferences} onClose={() => setSetupMode(null)} onSave={onSave} />
       )}
       {panel === 'rules' && (
         <Modal
@@ -493,7 +497,7 @@ export default function App() {
             <p>弈间采用自由五子棋规则，不设三三、四四等禁手。棋盘下满而无人获胜时，双方和棋。</p>
           </div>
           <button className="primary-button save-button" onClick={() => setPanel(null)}>
-            明白了，返回大厅
+            {localGame ? '明白了，继续对弈' : '明白了，返回大厅'}
             <ArrowRight size={17} />
           </button>
         </Modal>
@@ -511,12 +515,12 @@ export default function App() {
             </div>
             <h3>还没有对局记录</h3>
             <p>
-              目前是首页预览版。正式对弈开放后，
+              对局记录功能尚未开放。
               <br />
-              已完成的棋局会出现在这里。
+              当前双人棋局仅在本次对弈中保留。
             </p>
           </div>
-          <button className="primary-button save-button" onClick={() => setPanel(null)}>
+          <button className="primary-button save-button" onClick={goHome}>
             回到对弈大厅
             <ArrowRight size={17} />
           </button>
@@ -531,7 +535,7 @@ export default function App() {
           <div className="setting-row">
             <div>
               <h3>落子音效</h3>
-              <p>选择模式时，听见清脆的一声落子。</p>
+              <p>落下棋子时，听见清脆的一声落子。</p>
             </div>
             <button
               className={`toggle-switch ${sound ? 'on' : ''}`}
@@ -552,7 +556,7 @@ export default function App() {
             </span>
             <div>
               <strong>弈间 · GOMOKU CLUB</strong>
-              <p>v0.1.0 · 首页预览版</p>
+              <p>v0.1.0 · 本地双人对弈</p>
             </div>
           </div>
           <p className="settings-footnote">

@@ -31,17 +31,32 @@ try {
   await window.emulateMedia({ reducedMotion: 'reduce' });
   await window.evaluate(() => document.fonts.ready);
   await window.screenshot({ path: path.join(root, '.local/electron-home.png'), fullPage: true });
-  await window.getByRole('button', { name: '选择双人模式' }).click();
-  await window.getByRole('textbox', { name: '黑棋棋手昵称' }).fill('桌面棋手');
+  await window.getByRole('button', { name: '选择单人模式' }).click();
+  await window.getByText('高手过招', { exact: true }).click();
   await window.getByRole('button', { name: '确认对局设置' }).click();
-  await expect(window.getByText(/好友对弈 · 桌面棋手/)).toBeVisible();
+  await expect(window.getByText(/人机对弈 · 高手过招/)).toBeVisible();
   const saved = await window.evaluate(() => window.desktop.request('GET', '/api/preferences'));
-  expect(saved.mode).toBe('local');
-  expect(saved.playerOne).toBe('桌面棋手');
+  expect(saved.mode).toBe('single');
+  expect(saved.difficulty).toBe('hard');
+  await window.getByRole('button', { name: '开始双人对弈' }).click();
+  await expect(window.getByRole('textbox')).toHaveCount(0);
+  await expect(window.getByRole('heading', { name: '轮到黑棋落子' })).toBeVisible();
+  for (const point of ['D8', 'A1', 'E8', 'C1', 'F8', 'E1', 'G8', 'G1', 'H8']) {
+    await window.getByRole('button', { name: new RegExp(`^${point}，`) }).click();
+  }
+  await expect(window.getByRole('heading', { name: '黑棋获胜', exact: true })).toBeVisible();
+  await expect(window.locator('.winning-stone')).toHaveCount(5);
+  await window.screenshot({
+    path: path.join(root, '.local/electron-local-game.png'),
+    fullPage: true,
+  });
+  await window.getByRole('button', { name: '再来一局' }).click();
+  await expect(window.locator('.game-stone')).toHaveCount(0);
+  await expect(window.getByRole('heading', { name: '轮到黑棋落子' })).toBeVisible();
   expect(await window.evaluate(() => typeof window.require)).toBe('undefined');
   expect(errors).toEqual([]);
   console.log(
-    'Electron smoke test passed: production page, sandboxed preload, Java startup and preference persistence.',
+    'Electron smoke test passed: production page, sandboxed preload, Java preferences, local game victory and restart.',
   );
 } finally {
   await app?.close();
