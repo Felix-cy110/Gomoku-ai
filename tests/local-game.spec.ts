@@ -62,13 +62,20 @@ test('方向键和空格落子，规则弹窗保留棋局，重开与返回首�
   await expect(page.locator('.game-stone')).toHaveCount(0);
 });
 
-test('设置服务不可用时双人模式仍可直接下棋', async ({ page }) => {
-  await page.route('**/api/preferences', (route) => route.abort());
+test('服务不可用时双人模式仍可直接下棋，刷新后清空棋局', async ({ page }) => {
+  await page.route('**/api/**', (route) => route.abort());
   await openGame(page);
   await cell(page, 'H8').click();
   await cell(page, 'I8').click();
   await expect(cell(page, 'H8')).toHaveAttribute('data-stone', 'black');
   await expect(cell(page, 'I8')).toHaveAttribute('data-stone', 'white');
+  expect(
+    await page.evaluate(() => ({ local: localStorage.length, session: sessionStorage.length })),
+  ).toEqual({ local: 0, session: 0 });
+  await page.reload();
+  await page.getByRole('button', { name: '开始双人对弈' }).click();
+  await expect(page.locator('.game-stone')).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: '轮到黑棋落子' })).toBeVisible();
 });
 
 test('窄屏棋盘四角均可点击，窗口缩放后不横向溢出', async ({ page }) => {

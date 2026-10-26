@@ -75,8 +75,6 @@ try {
     'backend/target/gomoku-backend.jar',
     '--port',
     String(apiPort),
-    '--data-dir',
-    process.env.GOMOKU_DATA_DIR || '.local',
   ]);
   await waitFor(`http://127.0.0.1:${apiPort}/api/health`);
   run(process.execPath, ['node_modules/vite/bin/vite.js']);
