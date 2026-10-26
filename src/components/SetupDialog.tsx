@@ -1,41 +1,27 @@
 import { useState, type FormEvent } from 'react';
-import { ArrowRight, Check, LoaderCircle, Sparkles } from 'lucide-react';
+import { ArrowRight, Check, Sparkles } from 'lucide-react';
 import Modal from './Modal';
 import { DIFFICULTIES, type GamePreferences } from '../types';
-import { savePreferences } from '../api';
 
 interface Props {
   preferences: GamePreferences;
   onClose: () => void;
-  onSave: (preferences: GamePreferences) => void;
+  onConfirm: (preferences: GamePreferences) => void;
 }
 
-export default function SetupDialog({ preferences, onClose, onSave }: Props) {
+export default function SetupDialog({ preferences, onClose, onConfirm }: Props) {
   const [draft, setDraft] = useState<GamePreferences>({ ...preferences, mode: 'single' });
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
 
-  async function submit(event: FormEvent) {
+  function submit(event: FormEvent) {
     event.preventDefault();
-    if (saving) return;
-    setSaving(true);
-    setError('');
-    try {
-      onSave(await savePreferences(draft));
-    } catch {
-      setError('暂时无法保存设置，请确认应用服务已启动后重试。');
-    } finally {
-      setSaving(false);
-    }
+    onConfirm(draft);
   }
 
   return (
     <Modal
       title="一个人的棋力修行"
       subtitle="找到适合你的节奏，每一次落子都是进步。"
-      onClose={() => {
-        if (!saving) onClose();
-      }}
+      onClose={onClose}
     >
       <form onSubmit={submit}>
         <div className="setup-mode">
@@ -103,24 +89,12 @@ export default function SetupDialog({ preferences, onClose, onSave }: Props) {
           <span className="status-dot" />
           自由五子棋<span>黑棋先行 · 五子相连获胜 · 无禁手</span>
         </div>
-        <p className="scope-note">单人模式目前支持保存偏好，AI 对弈将在后续版本开放。</p>
-        {error && (
-          <p className="form-error" role="alert">
-            {error}
-          </p>
-        )}
-        <button className="primary-button save-button" type="submit" disabled={saving}>
-          {saving ? (
-            <>
-              <LoaderCircle className="spin" size={18} />
-              正在保存
-            </>
-          ) : (
-            <>
-              确认对局设置
-              <ArrowRight size={18} />
-            </>
-          )}
+        <p className="scope-note">
+          设置仅本次有效，刷新或重启后恢复默认。AI 对弈将在后续版本开放。
+        </p>
+        <button className="primary-button save-button" type="submit">
+          确认对局设置
+          <ArrowRight size={18} />
         </button>
       </form>
     </Modal>

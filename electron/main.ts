@@ -5,6 +5,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import path from 'node:path';
 
 const projectDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const sessionPartition = 'yijian-ephemeral';
 let javaProcess: ChildProcess | undefined;
 let mainWindow: BrowserWindow | undefined;
 let apiOrigin = '';
@@ -42,8 +43,6 @@ async function startBackend() {
         path.join(projectDirectory, 'backend/target/gomoku-backend.jar'),
         '--port',
         String(port),
-        '--data-dir',
-        path.join(app.getPath('userData'), 'lobby'),
       ],
       {
         windowsHide: true,
@@ -86,6 +85,7 @@ function createWindow() {
     show: false,
     autoHideMenuBar: true,
     webPreferences: {
+      partition: sessionPartition,
       preload: path.join(projectDirectory, 'dist-electron/preload.cjs'),
       nodeIntegration: false,
       contextIsolation: true,
@@ -114,10 +114,11 @@ else {
   app
     .whenReady()
     .then(async () => {
-      session.defaultSession.setPermissionRequestHandler((_webContents, _permission, callback) =>
+      const ephemeralSession = session.fromPartition(sessionPartition, { cache: false });
+      ephemeralSession.setPermissionRequestHandler((_webContents, _permission, callback) =>
         callback(false),
       );
-      session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+      ephemeralSession.webRequest.onHeadersReceived((details, callback) => {
         const dev = Boolean(process.env.VITE_DEV_SERVER_URL);
         const socketOrigin = dev
           ? new URL(process.env.VITE_DEV_SERVER_URL!).origin.replace('http:', 'ws:')
@@ -128,26 +129,18 @@ else {
         });
       });
       await startBackend();
-      ipcMain.handle(
-        'lobby:request',
-        async (event, method: unknown, route: unknown, body: unknown) => {
-          if (
-            event.sender !== mainWindow?.webContents ||
-            event.senderFrame !== mainWindow.webContents.mainFrame
-          )
-            throw new Error('Untrusted sender');
-          if (!['GET', 'PUT'].includes(String(method)) || route !== '/api/preferences')
-            throw new Error('Unsupported request');
-          const response = await fetch(`${apiOrigin}/api/preferences`, {
-            method: String(method),
-            headers: { 'Content-Type': 'application/json' },
-            body: method === 'PUT' ? JSON.stringify(body) : undefined,
-            signal: AbortSignal.timeout(5000),
-          });
-          if (!response.ok) throw new Error('Unable to load or save preferences');
-          return response.json();
-        },
-      );
+      ipcMain.handle('lobby:health', async (event) => {
+        if (
+          event.sender !== mainWindow?.webContents ||
+          event.senderFrame !== mainWindow.webContents.mainFrame
+        )
+          throw new Error('Untrusted sender');
+        const response = await fetch(`${apiOrigin}/api/health`, {
+          signal: AbortSignal.timeout(5000),
+        });
+        if (!response.ok) throw new Error('Unable to check backend health');
+        return response.json();
+      });
       createWindow();
       app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0) createWindow();

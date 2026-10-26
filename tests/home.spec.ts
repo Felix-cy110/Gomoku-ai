@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-test('首页展示两种模式，单人配置通过 Java 保存并在刷新后恢复', async ({ page }) => {
+test('单人配置仅在当前页面有效，刷新后恢复默认', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
   await page.goto('/');
@@ -13,14 +13,17 @@ test('首页展示两种模式，单人配置通过 Java 保存并在刷新后�
   await modal.getByRole('button', { name: '确认对局设置' }).click();
   await expect(modal).not.toBeVisible();
   await expect(page.getByText('人机对弈 · 高手过招 · 执白后行')).toBeVisible();
-  await page.reload();
-  await page.getByRole('button', { name: '选择单人模式' }).click();
+  await page.getByRole('button', { name: '已选择单人 · 调整设置' }).click();
   await expect(page.locator('input[name="difficulty"][value="hard"]')).toBeChecked();
   await expect(page.locator('input[name="color"][value="white"]')).toBeChecked();
+  await page.reload();
+  await page.getByRole('button', { name: '选择单人模式' }).click();
+  await expect(page.locator('input[name="difficulty"][value="normal"]')).toBeChecked();
+  await expect(page.locator('input[name="color"][value="black"]')).toBeChecked();
   expect(errors).toEqual([]);
 });
 
-test('取消单人设置不会更改已保存的偏好', async ({ page }) => {
+test('取消单人设置不会更改本次已确认的偏好', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: '选择单人模式' }).click();
   await page.getByText('初出茅庐', { exact: true }).click();
@@ -32,7 +35,7 @@ test('取消单人设置不会更改已保存的偏好', async ({ page }) => {
   await expect(page.locator('input[name="difficulty"][value="easy"]')).toBeChecked();
 });
 
-test('规则、空记录、音效偏好和键盘关闭可用', async ({ page }) => {
+test('规则、空记录和键盘关闭可用，音效刷新后恢复默认', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: '了解规则' }).click();
   await expect(page.getByRole('heading', { name: '五子相连，就这么简单。' })).toBeVisible();
@@ -45,21 +48,38 @@ test('规则、空记录、音效偏好和键盘关闭可用', async ({ page }) 
   await page.getByRole('switch', { name: '落子音效' }).click();
   await expect(page.getByRole('switch', { name: '落子音效' })).not.toBeChecked();
   await page.keyboard.press('Escape');
-  await page.reload();
   await expect(page.getByRole('button', { name: '开启落子音效' })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole('button', { name: '关闭落子音效' })).toBeVisible();
 });
 
-test('保存失败时显示错误并保留编辑内容', async ({ page }) => {
+test('单人设置不依赖服务，不读取旧音效数据或访问浏览器存储', async ({ page }) => {
+  const requests: string[] = [];
+  page.on('request', (request) => {
+    if (new URL(request.url()).pathname.startsWith('/api/')) requests.push(request.url());
+  });
+  await page.route('**/api/**', (route) => route.abort());
+  await page.addInitScript(() => {
+    localStorage.setItem('yijian.sound', 'off');
+    Reflect.set(window, 'storageAccess', []);
+    for (const method of ['getItem', 'setItem', 'removeItem', 'clear', 'key']) {
+      Object.defineProperty(Storage.prototype, method, {
+        value: () => {
+          Reflect.get(window, 'storageAccess').push(method);
+          throw new Error('本版本不应访问浏览器存储');
+        },
+      });
+    }
+  });
   await page.goto('/');
+  await page.getByRole('button', { name: '关闭落子音效' }).click();
+  await expect(page.getByRole('button', { name: '开启落子音效' })).toBeVisible();
   await page.getByRole('button', { name: '选择单人模式' }).click();
   await page.getByText('高手过招', { exact: true }).click();
-  await page.route('**/api/preferences', async (route) => {
-    if (route.request().method() === 'PUT') await route.fulfill({ status: 500, body: '{}' });
-    else await route.continue();
-  });
   await page.getByRole('button', { name: '确认对局设置' }).click();
-  await expect(page.getByRole('alert')).toContainText('暂时无法保存设置');
-  await expect(page.locator('input[name="difficulty"][value="hard"]')).toBeChecked();
+  await expect(page.getByText(/人机对弈 · 高手过招/)).toBeVisible();
+  expect(await page.evaluate(() => Reflect.get(window, 'storageAccess'))).toEqual([]);
+  expect(requests).toEqual([]);
 });
 
 test('移动端布局无横向溢出，双人选择可操作', async ({ page }) => {

@@ -17,6 +17,6 @@ export default defineConfig({
     url: 'http://127.0.0.1:5197',
     reuseExistingServer: false,
     timeout: 120_000,
-    env: { GOMOKU_DATA_DIR: '.local/e2e', GOMOKU_WEB_PORT: '5197', GOMOKU_API_PORT: '18097' },
+    env: { GOMOKU_WEB_PORT: '5197', GOMOKU_API_PORT: '18097' },
   },
 });
