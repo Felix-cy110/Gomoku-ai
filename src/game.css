@@ -111,6 +111,8 @@
   color: #a18a60;
 }
 .board-grid {
+  position: relative;
+  isolation: isolate;
   display: grid;
   grid-template-columns: repeat(15, minmax(0, 1fr));
   grid-template-rows: repeat(15, minmax(0, 1fr));
@@ -209,6 +211,24 @@
     0 0 0 2px #64894b,
     0 0 0 4px #f2f6dfb3,
     1px 3px 4px #584a3a50;
+}
+.winning-line-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 4;
+  pointer-events: none;
+  overflow: visible;
+}
+.winning-line {
+  stroke: #8bb35f;
+  stroke-width: 0.08;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 3px #f4f8d1cc);
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+  animation: winning-line-draw 0.7s ease-in-out both;
 }
 .last-move-mark {
   position: absolute;
@@ -369,6 +389,14 @@
     opacity: 1;
   }
 }
+@keyframes winning-line-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
 @media (max-width: 1190px) {
   .game-layout {
     grid-template-columns: minmax(0, 1fr) 205px;
@@ -475,7 +503,8 @@
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .game-stone {
+  .game-stone,
+  .winning-line {
     animation: none;
   }
 }
