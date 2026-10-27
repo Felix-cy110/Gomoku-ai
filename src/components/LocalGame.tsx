@@ -18,6 +18,8 @@ export default function LocalGame({ onExit, onRules, onStone }: Props) {
   const boardRef = useRef<HTMLDivElement>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const finished = game.result !== null;
+  const winningStart = game.winningLine[0];
+  const winningEnd = game.winningLine[game.winningLine.length - 1];
   const status =
     game.result === 'draw'
       ? '本局和棋'
@@ -152,6 +154,23 @@ export default function LocalGame({ onExit, onRules, onStone }: Props) {
                   </button>
                 );
               })}
+              {game.winningLine.length > 0 && (
+                <svg
+                  className="winning-line-overlay"
+                  viewBox={`0 0 ${BOARD_SIZE} ${BOARD_SIZE}`}
+                  preserveAspectRatio="none"
+                  aria-hidden="true"
+                >
+                  <line
+                    className="winning-line"
+                    x1={(winningStart % BOARD_SIZE) + 0.5}
+                    y1={Math.floor(winningStart / BOARD_SIZE) + 0.5}
+                    x2={(winningEnd % BOARD_SIZE) + 0.5}
+                    y2={Math.floor(winningEnd / BOARD_SIZE) + 0.5}
+                    pathLength="1"
+                  />
+                </svg>
+              )}
             </div>
           </div>
           <p className="board-help" id="board-help">
