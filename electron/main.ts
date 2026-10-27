@@ -41,8 +41,7 @@ async function startBackend() {
         '-Dfile.encoding=UTF-8',
         '-jar',
         path.join(projectDirectory, 'backend/target/gomoku-backend.jar'),
-        '--port',
-        String(port),
+        `--server.port=${port}`,
       ],
       {
         windowsHide: true,
@@ -56,7 +55,8 @@ async function startBackend() {
   javaProcess?.on('error', (error) => {
     startError = error;
   });
-  for (let attempt = 0; attempt < 60; attempt++) {
+  const deadline = Date.now() + 30_000;
+  while (Date.now() < deadline) {
     if (startError) throw startError;
     if (javaProcess && javaProcess.exitCode !== null)
       throw new Error('Java service exited during startup');
