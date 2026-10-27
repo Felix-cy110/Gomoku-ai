@@ -46,7 +46,8 @@ async function ensurePortAvailable(port) {
 }
 
 async function waitFor(url) {
-  for (let attempt = 0; attempt < 100 && !stopping; attempt++) {
+  const deadline = Date.now() + 30_000;
+  while (Date.now() < deadline && !stopping) {
     try {
       const response = await fetch(url, { signal: AbortSignal.timeout(700) });
       if (response.ok) return;
@@ -73,8 +74,7 @@ try {
     '-Dfile.encoding=UTF-8',
     '-jar',
     'backend/target/gomoku-backend.jar',
-    '--port',
-    String(apiPort),
+    `--server.port=${apiPort}`,
   ]);
   await waitFor(`http://127.0.0.1:${apiPort}/api/health`);
   run(process.execPath, ['node_modules/vite/bin/vite.js']);
@@ -91,7 +91,7 @@ try {
     const child = spawn(electron, ['.'], {
       cwd: root,
       stdio: 'inherit',
-      windowsHide: true,
+      windowsHide: false,
       env: environment,
     });
     children.add(child);
