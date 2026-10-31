@@ -38,12 +38,12 @@ try {
   await window.getByText('高手过招', { exact: true }).click();
   await window.getByRole('button', { name: '确认对局设置' }).click();
   await expect(window.getByText(/人机对弈 · 高手过招/)).toBeVisible();
-  await window.getByRole('button', { name: '关闭落子音效' }).click();
+  await window.getByRole('button', { name: '关闭对局音效' }).click();
   expect(
     await window.evaluate(() => ({ local: localStorage.length, session: sessionStorage.length })),
   ).toEqual({ local: 0, session: 0 });
   await window.reload();
-  await expect(window.getByRole('button', { name: '关闭落子音效' })).toBeVisible();
+  await expect(window.getByRole('button', { name: '关闭对局音效' })).toBeVisible();
   await window.getByRole('button', { name: '选择单人模式' }).click();
   await expect(window.locator('input[name="difficulty"][value="normal"]')).toBeChecked();
   await expect(window.locator('input[name="color"][value="black"]')).toBeChecked();
@@ -67,7 +67,7 @@ try {
   expect(errors).toEqual([]);
   // Reuse the profile to verify a complete restart, not just a page reload.
   await window.getByRole('button', { name: '返回首页', exact: true }).click();
-  await window.getByRole('button', { name: '关闭落子音效' }).click();
+  await window.getByRole('button', { name: '关闭对局音效' }).click();
   await window.getByRole('button', { name: '选择单人模式' }).click();
   await window.getByText('高手过招', { exact: true }).click();
   await window.getByText('执白 · 后行', { exact: true }).click();
@@ -80,7 +80,7 @@ try {
     timeout: 30_000,
   });
   const restartedWindow = await app.firstWindow();
-  await expect(restartedWindow.getByRole('button', { name: '关闭落子音效' })).toBeVisible();
+  await expect(restartedWindow.getByRole('button', { name: '关闭对局音效' })).toBeVisible();
   await restartedWindow.getByRole('button', { name: '选择单人模式' }).click();
   await expect(restartedWindow.locator('input[name="difficulty"][value="normal"]')).toBeChecked();
   await expect(restartedWindow.locator('input[name="color"][value="black"]')).toBeChecked();

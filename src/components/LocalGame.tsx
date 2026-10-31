@@ -1,18 +1,20 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { ArrowLeft, ArrowUpRight, BookOpen, RotateCcw, Trophy, Undo2 } from 'lucide-react';
 import { BOARD_SIZE, coordinate, createGame, playMove, undoMove } from '../game/gomoku';
+import WinningLine from './WinningLine';
 import '../game.css';
 
 interface Props {
   onExit: () => void;
   onRules: () => void;
   onStone: () => void;
+  soundEnabled: boolean;
 }
 
 const STAR_POINTS = [48, 56, 112, 168, 176];
 const CENTER = 112;
 
-export default function LocalGame({ onExit, onRules, onStone }: Props) {
+export default function LocalGame({ onExit, onRules, onStone, soundEnabled }: Props) {
   const [game, setGame] = useState(createGame);
   const [focusIndex, setFocusIndex] = useState(CENTER);
   const boardRef = useRef<HTMLDivElement>(null);
@@ -161,21 +163,7 @@ export default function LocalGame({ onExit, onRules, onStone }: Props) {
                 );
               })}
               {game.winningLine.length > 0 && (
-                <svg
-                  className="winning-line-overlay"
-                  viewBox={`0 0 ${BOARD_SIZE} ${BOARD_SIZE}`}
-                  preserveAspectRatio="none"
-                  aria-hidden="true"
-                >
-                  <line
-                    className="winning-line"
-                    x1={(winningStart % BOARD_SIZE) + 0.5}
-                    y1={Math.floor(winningStart / BOARD_SIZE) + 0.5}
-                    x2={(winningEnd % BOARD_SIZE) + 0.5}
-                    y2={Math.floor(winningEnd / BOARD_SIZE) + 0.5}
-                    pathLength="1"
-                  />
-                </svg>
+                <WinningLine start={winningStart} end={winningEnd} soundEnabled={soundEnabled} />
               )}
             </div>
           </div>

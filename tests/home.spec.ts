@@ -45,12 +45,12 @@ test('规则、空记录和键盘关闭可用，音效刷新后恢复默认', as
   await expect(page.getByText('还没有对局记录', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: '回到对弈大厅' }).click();
   await page.getByRole('button', { name: '偏好设置' }).click();
-  await page.getByRole('switch', { name: '落子音效' }).click();
-  await expect(page.getByRole('switch', { name: '落子音效' })).not.toBeChecked();
+  await page.getByRole('switch', { name: '对局音效' }).click();
+  await expect(page.getByRole('switch', { name: '对局音效' })).not.toBeChecked();
   await page.keyboard.press('Escape');
-  await expect(page.getByRole('button', { name: '开启落子音效' })).toBeVisible();
+  await expect(page.getByRole('button', { name: '开启对局音效' })).toBeVisible();
   await page.reload();
-  await expect(page.getByRole('button', { name: '关闭落子音效' })).toBeVisible();
+  await expect(page.getByRole('button', { name: '关闭对局音效' })).toBeVisible();
 });
 
 test('单人设置不依赖服务，不读取旧音效数据或访问浏览器存储', async ({ page }) => {
@@ -72,8 +72,8 @@ test('单人设置不依赖服务，不读取旧音效数据或访问浏览器�
     }
   });
   await page.goto('/');
-  await page.getByRole('button', { name: '关闭落子音效' }).click();
-  await expect(page.getByRole('button', { name: '开启落子音效' })).toBeVisible();
+  await page.getByRole('button', { name: '关闭对局音效' }).click();
+  await expect(page.getByRole('button', { name: '开启对局音效' })).toBeVisible();
   await page.getByRole('button', { name: '选择单人模式' }).click();
   await page.getByText('高手过招', { exact: true }).click();
   await page.getByRole('button', { name: '确认对局设置' }).click();
