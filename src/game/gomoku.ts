@@ -6,6 +6,7 @@ export const CELL_COUNT = BOARD_SIZE * BOARD_SIZE;
 export interface GameState {
   board: (StoneColor | null)[];
   moves: number;
+  moveHistory: readonly number[];
   turn: StoneColor;
   lastMove: number | null;
   result: StoneColor | 'draw' | null;
@@ -16,6 +17,7 @@ export function createGame(): GameState {
   return {
     board: Array<StoneColor | null>(CELL_COUNT).fill(null),
     moves: 0,
+    moveHistory: [],
     turn: 'black',
     lastMove: null,
     result: null,
@@ -59,7 +61,7 @@ function findWinningLine(board: GameState['board'], index: number, color: StoneC
   return [];
 }
 
-/** Invalid and post-game moves leave the entire state unchanged. */
+/** 非法落子或棋局结束后的落子不改变状态与历史。 */
 export function playMove(state: GameState, index: number): GameState {
   if (
     state.result ||
@@ -77,9 +79,30 @@ export function playMove(state: GameState, index: number): GameState {
   return {
     board,
     moves,
+    moveHistory: [...state.moveHistory, index],
     turn: state.turn === 'black' ? 'white' : 'black',
     lastMove: index,
     result: winningLine.length ? state.turn : moves === CELL_COUNT ? 'draw' : null,
     winningLine,
+  };
+}
+
+/** 撤回最近一手；合法棋局在最后一手之前必然尚未结束。 */
+export function undoMove(state: GameState): GameState {
+  if (state.lastMove === null) return state;
+  const turn = state.board[state.lastMove];
+  if (turn === null) return state;
+
+  const board = [...state.board];
+  board[state.lastMove] = null;
+  const moveHistory = state.moveHistory.slice(0, -1);
+  return {
+    board,
+    moves: moveHistory.length,
+    moveHistory,
+    turn,
+    lastMove: moveHistory.at(-1) ?? null,
+    result: null,
+    winningLine: [],
   };
 }

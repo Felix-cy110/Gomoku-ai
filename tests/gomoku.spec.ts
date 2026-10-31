@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { BOARD_SIZE, CELL_COUNT, createGame, playMove } from '../src/game/gomoku';
+import { BOARD_SIZE, CELL_COUNT, createGame, playMove, undoMove } from '../src/game/gomoku';
 
 const at = (row: number, col: number) => row * BOARD_SIZE + col;
 
@@ -19,6 +19,36 @@ test('黑棋先下，合法落子交替，重复落子和越界不会改变棋�
   expect(white.moves).toBe(2);
 });
 
+test('空棋盘悔棋不改变状态，连续悔棋恢复每一步且不修改原状态', () => {
+  const start = createGame();
+  expect(undoMove(start)).toBe(start);
+  const first = playMove(start, at(7, 7));
+  const second = playMove(first, at(7, 8));
+  const third = playMove(second, at(6, 7));
+
+  expect(undoMove(third)).toEqual(second);
+  expect(undoMove(undoMove(third))).toEqual(first);
+  expect(undoMove(undoMove(undoMove(third)))).toEqual(start);
+  expect(third.board[at(6, 7)]).toBe('black');
+  expect(third.moveHistory).toEqual([at(7, 7), at(7, 8), at(6, 7)]);
+  expect(start.moveHistory).toEqual([]);
+});
+
+test('非法落子不进入历史，悔棋后换位置落子使用新的历史', () => {
+  const first = playMove(createGame(), at(7, 7));
+  const second = playMove(first, at(7, 8));
+  const invalid = playMove(second, at(7, 7));
+  expect(undoMove(invalid)).toEqual(first);
+
+  const replacement = playMove(undoMove(second), at(8, 7));
+  expect(replacement.board[at(7, 8)]).toBeNull();
+  expect(replacement.board[at(8, 7)]).toBe('white');
+  expect(replacement.lastMove).toBe(at(8, 7));
+  expect(replacement.moves).toBe(2);
+  expect(undoMove(replacement)).toEqual(first);
+  expect(second.board[at(7, 8)]).toBe('white');
+});
+
 for (const color of ['black', 'white'] as const) {
   for (const [name, line] of [
     ['横向边缘', [0, 1, 2, 3, 4].map((col) => at(0, col))],
@@ -28,8 +58,10 @@ for (const color of ['black', 'white'] as const) {
   ] as const) {
     test(`${color === 'black' ? '黑棋' : '白棋'}${name}五连获胜，结束后不能继续落子`, () => {
       let game = createGame();
+      let beforeWinningMove = game;
       for (let move = 0; move < 5; move++) {
         if (color === 'white') game = playMove(game, at(14, move * 2));
+        if (move === 4) beforeWinningMove = game;
         game = playMove(game, line[move]);
         if (move < 4) {
           expect(game.result).toBeNull();
@@ -39,6 +71,8 @@ for (const color of ['black', 'white'] as const) {
       expect(game.result).toBe(color);
       expect(game.winningLine).toEqual(line);
       expect(playMove(game, at(10, 10))).toBe(game);
+      expect(undoMove(game)).toEqual(beforeWinningMove);
+      expect(playMove(undoMove(game), line[4])).toEqual(game);
     });
   }
 }
@@ -50,9 +84,11 @@ test('补上中间缺口形成六连，同样获胜并标出完整连线', () =>
     expect(game.result).toBeNull();
     game = playMove(game, at(14, i * 2));
   }
+  const beforeWinningMove = game;
   game = playMove(game, at(7, 3));
   expect(game.result).toBe('black');
   expect(game.winningLine).toEqual([1, 2, 3, 4, 5, 6].map((col) => at(7, col)));
+  expect(undoMove(game)).toEqual(beforeWinningMove);
 });
 
 test('数组相邻的行尾与下一行行首不能算成连线', () => {
@@ -85,16 +121,21 @@ test('225 个交叉点下满且无人五连时判和，重新开始清空棋盘'
     }
   }
   let game = createGame();
+  let beforeLastMove = game;
   for (let move = 0; move < CELL_COUNT; move++) {
     const index = (move % 2 === 0 ? black : white)[Math.floor(move / 2)];
+    if (move === CELL_COUNT - 1) beforeLastMove = game;
     game = playMove(game, index);
     if (move < CELL_COUNT - 1) expect(game.result).toBeNull();
   }
   expect(game.result).toBe('draw');
   expect(game.moves).toBe(CELL_COUNT);
   expect(playMove(game, 0)).toBe(game);
+  expect(undoMove(game)).toEqual(beforeLastMove);
+  expect(playMove(undoMove(game), game.lastMove!)).toEqual(game);
   const fresh = createGame();
   expect(fresh.board.every((stone) => stone === null)).toBe(true);
   expect(fresh.turn).toBe('black');
   expect(fresh.result).toBeNull();
+  expect(fresh.moveHistory).toEqual([]);
 });

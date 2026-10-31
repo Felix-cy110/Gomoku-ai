@@ -353,9 +353,35 @@
 .current-player > span:last-child {
   color: #6e8a57;
 }
+.game-actions {
+  display: grid;
+  gap: 10px;
+  margin-top: 21px;
+}
+.undo-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 12px;
+  border: 1px solid #cbd8bf;
+  border-radius: 7px;
+  background: #f0f4e9;
+  color: #5c7450;
+  font-size: 12px;
+  transition:
+    background 0.2s,
+    border-color 0.2s;
+}
+.undo-button:hover:not(:disabled) {
+  background: #e6efdc;
+  border-color: #9fb58c;
+}
+.undo-button:disabled {
+  cursor: not-allowed;
+}
 .new-game-button {
   width: 100%;
-  margin-top: 21px;
 }
 .game-rules-button {
   display: flex;
@@ -440,7 +466,7 @@
     grid-row: span 3;
   }
   .game-players,
-  .new-game-button,
+  .game-actions,
   .game-rules-button {
     margin: 0;
   }
