@@ -22,27 +22,10 @@ import BoardArt from './components/BoardArt';
 import Modal from './components/Modal';
 import SetupDialog from './components/SetupDialog';
 import LocalGame from './components/LocalGame';
+import { playStoneSound } from './audio/stoneSound';
 import { DEFAULT_PREFERENCES, DIFFICULTIES, type GameMode, type GamePreferences } from './types';
 
 type Panel = 'rules' | 'history' | 'settings' | null;
-
-function playStoneSound() {
-  const context = new AudioContext();
-  const oscillator = context.createOscillator();
-  const gain = context.createGain();
-  oscillator.type = 'sine';
-  oscillator.frequency.setValueAtTime(680, context.currentTime);
-  oscillator.frequency.exponentialRampToValueAtTime(220, context.currentTime + 0.06);
-  gain.gain.setValueAtTime(0.1, context.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.001, context.currentTime + 0.09);
-  oscillator.connect(gain);
-  gain.connect(context.destination);
-  oscillator.start();
-  oscillator.stop(context.currentTime + 0.1);
-  oscillator.onended = () => {
-    void context.close();
-  };
-}
 
 function ModeIllustration({ mode }: { mode: GameMode }) {
   return (
@@ -83,22 +66,14 @@ export default function App() {
     const next = !sound;
     setSound(next);
     if (next) {
-      try {
-        playStoneSound();
-      } catch {
-        /* Audio may be unavailable on a headless device. */
-      }
+      void playStoneSound();
     }
     setToast(next ? '落子音效已开启' : '落子音效已关闭');
   }
 
   function stoneSound() {
     if (sound) {
-      try {
-        playStoneSound();
-      } catch {
-        /* Audio is optional. */
-      }
+      void playStoneSound();
     }
   }
 
