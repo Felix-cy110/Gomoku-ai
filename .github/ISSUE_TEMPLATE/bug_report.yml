@@ -1,0 +1,67 @@
+name: 问题反馈
+description: 报告已有功能的异常，提供可复现步骤和运行环境。
+title: '[问题] '
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢反馈！请先阅读[贡献指南](https://github.com/Felix-cy110/Gomoku-ai/blob/main/CONTRIBUTING.md)。
+        一个 Issue 讨论一个问题，日志和截图中请移除令牌、密码等敏感信息。
+  - type: checkboxes
+    id: existing-issues
+    attributes:
+      label: 提交前确认
+      options:
+        - label: 我已搜索现有 Issue，确认没有重复的问题。
+          required: true
+  - type: input
+    id: version
+    attributes:
+      label: 项目版本或提交号
+      description: 可在项目目录执行 git rev-parse --short HEAD 获取提交号；无法获取时说明来源和下载时间。
+      placeholder: 例如：v0.1.0 或当前提交号
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: 运行环境
+      description: 请提供操作系统及版本、Electron 桌面或浏览器运行方式；开发问题请补充 Node.js、Java、Maven 版本和启动命令。
+      placeholder: |
+        操作系统及版本：
+        运行方式与启动命令：
+        Node.js / Java / Maven 版本（如适用）：
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      description: 从初始状态写出可重复的操作。棋局问题请提供落子坐标及顺序。
+      placeholder: |
+        1. 启动应用并……
+        2. 点击……
+        3. 观察到……
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 预期结果
+      description: 按当前功能约定，应该发生什么？
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: 实际结果
+      description: 实际发生了什么？请提供错误文字或具体异常现象。
+    validations:
+      required: true
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: 补充信息
+      description: 可粘贴相关日志，或附上截图、录屏和临时处理方式；请移除敏感信息。
+    validations:
+      required: false
