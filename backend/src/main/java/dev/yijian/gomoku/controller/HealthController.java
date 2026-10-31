@@ -1,13 +1,26 @@
 package dev.yijian.gomoku.controller;
 
-import java.util.Map;
+import dev.yijian.gomoku.entity.HealthStatus;
+import dev.yijian.gomoku.service.HealthService;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * 健康检查接口，仅负责 HTTP 请求与业务服务的衔接。
+ */
 @RestController
+@RequestMapping("/api/health")
 public class HealthController {
-    @GetMapping("/api/health")
-    public Map<String, String> health() {
-        return Map.of("status", "ok", "service", "yijian-lobby", "version", "0.1.0");
+
+    private final HealthService healthService;
+
+    public HealthController(HealthService healthService) {
+        this.healthService = healthService;
+    }
+
+    @GetMapping
+    public HealthStatus health() {
+        return healthService.getHealth();
     }
 }

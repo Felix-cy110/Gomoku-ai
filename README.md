@@ -74,7 +74,7 @@ npm run build
 npm run test:desktop
 ```
 
-后端测试使用 `@SpringBootTest` 在随机端口启动真实 HTTP 服务，覆盖健康检查 JSON、禁止缓存与 `nosniff` 响应头、不创建会话 Cookie、旧偏好读写接口移除、未知路径的 404、请求方法限制的 405，以及数据目录参数移除。
+后端测试使用 `@SpringBootTest` 在随机端口启动真实 HTTP 服务，覆盖健康检查 JSON、禁止缓存与 `nosniff` 响应头、不创建会话 Cookie、旧偏好读写接口移除、未知路径的 404、请求方法限制的 405，以及数据目录参数移除。另使用完整 Spring 上下文配合 MockMvc，验证自定义服务配置经过 Service 层后正确返回。
 
 `test:e2e` 验证 Vite 到 Spring Boot 的健康检查代理，并运行棋局逻辑和页面测试。棋局逻辑覆盖黑白交替、重复与越界落子、双方四个方向的五连、长连、缺口和阻断、跨行边界以及满盘和棋。页面测试覆盖双人落子和胜负、键盘与窄屏操作，以及设置和音效刷新后恢复默认、旧音效数据不再读取、不调用浏览器存储或偏好接口、棋局刷新后清空。测试使用独立的 `5197` / `18097` 端口。
 
@@ -92,9 +92,45 @@ tests/           Playwright 端到端测试
 public/          本地图标
 ```
 
-后端使用 Spring Boot 3.5.11、Spring MVC 和内嵌 Tomcat，Java 版本为 17；Spring Boot 与 Java 版本对齐参考项目 CampusSys。入口为 `GomokuApplication`，接口位于 `controller/`，响应头过滤器位于 `config/`，通过 Spring Boot Maven 插件打包为 `backend/target/gomoku-backend.jar`。当前仅提供健康检查，不读写用户数据，也不需要数据库或 Redis。双人棋局由 TypeScript 本地处理，后续可以在 `backend/` 增加 AI 模块。React 页面未直接暴露 Node.js 能力，Electron 启用上下文隔离、沙箱与不写磁盘缓存的内存会话。
+后端使用 Spring Boot 3.5.11、Spring MVC 和内嵌 Tomcat，Java 版本为 17；Spring Boot 与 Java 版本对齐参考项目 CampusSys。入口为 `GomokuApplication`，通过 Spring Boot Maven 插件打包为 `backend/target/gomoku-backend.jar`。当前仅提供健康检查，不读写用户数据，也不需要数据库或 Redis。双人棋局由 TypeScript 本地处理，后续可以在 `backend/` 增加 AI 模块。React 页面未直接暴露 Node.js 能力，Electron 启用上下文隔离、沙箱与不写磁盘缓存的内存会话。
 
 中文字体由 npm 字体包提供，随应用本地构建，无需运行时从外网加载字体或图片。
+
+### 后端分层约定
+
+```text
+backend/src/main/java/dev/yijian/gomoku/
+├── GomokuApplication.java          应用启动入口与配置扫描
+├── config/
+│   └── ServiceProperties.java      服务元信息的类型化配置
+├── controller/
+│   └── HealthController.java       HTTP 路由与业务服务调用
+├── dto/
+│   └── ErrorResponse.java          API 错误响应对象
+├── entity/
+│   └── HealthStatus.java           服务健康状态业务对象
+├── exception/
+│   └── GlobalExceptionHandler.java 统一异常处理
+├── filter/
+│   └── ApiResponseFilter.java      API 通用响应头过滤器
+├── mapper/
+│   └── package-info.java           数据访问层预留与职责说明
+├── service/
+│   ├── HealthService.java          业务接口
+│   └── impl/
+│       └── HealthServiceImpl.java  业务实现
+└── utils/
+    └── ApplicationArgumentsUtils.java 启动参数校验工具
+```
+
+- 包名统一小写，类名使用大驼峰；Service 接口放在 `service`，实现类放在 `service.impl` 并以 `Impl` 结尾。Java 使用 4 个空格缩进，XML 使用 2 个空格，具体编辑器约定见 `backend/.editorconfig`。
+- Controller 调用 Service 接口，由 Spring 注入 `service.impl` 中的实现类；Controller 只处理路由和调用，业务状态由 Service 实现类构建，依赖使用构造器注入。
+- `entity` 放业务对象，`dto` 放接口传输对象；目前的 `HealthStatus` 是不可变业务对象，不映射数据库表。错误响应继续使用 `error` 字段，健康检查继续使用 `status`、`service`、`version` 字段。
+- `config` 放配置绑定和配置类，`exception` 放统一异常处理，`filter` 放 HTTP 过滤器，`utils` 只放无状态工具。
+- `mapper` 当前仅保留包说明，没有 Mapper 实现或数据库依赖。未来明确需要持久化时，由 Service 实现调用 Mapper，Controller 不直接访问数据库。
+- 测试放在 `backend/src/test/java` 对应包下；接口行为与配置绑定测试放在 `controller`，启动入口测试与启动类同包。
+
+健康检查使用的服务标识和版本集中配置在 `application.properties` 的 `gomoku.service.name`、`gomoku.service.version`，也可通过标准 Spring Boot 命令行参数覆盖；默认接口响应与重构前一致。
 
 ## API 与数据
 

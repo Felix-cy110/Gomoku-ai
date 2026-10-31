@@ -1,15 +1,16 @@
 package dev.yijian.gomoku;
 
-import org.springframework.boot.DefaultApplicationArguments;
+import dev.yijian.gomoku.utils.ApplicationArgumentsUtils;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 
 @SpringBootApplication
+@ConfigurationPropertiesScan
 public class GomokuApplication {
+
     public static void main(String[] args) {
-        if (new DefaultApplicationArguments(args).containsOption("data-dir")) {
-            throw new IllegalArgumentException("The --data-dir option is no longer supported");
-        }
+        ApplicationArgumentsUtils.validate(args);
         SpringApplication.run(GomokuApplication.class, args);
     }
 }
