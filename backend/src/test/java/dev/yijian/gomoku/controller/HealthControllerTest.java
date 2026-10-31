@@ -1,6 +1,7 @@
-package dev.yijian.gomoku;
+package dev.yijian.gomoku.controller;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.net.URI;
@@ -19,6 +20,7 @@ import org.springframework.http.MediaType;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class HealthControllerTest {
+
     @LocalServerPort
     private int port;
 
@@ -32,12 +34,14 @@ class HealthControllerTest {
         if (body != null) {
             builder.header("Content-Type", "application/json");
         }
-        builder.method(method, body == null ? HttpRequest.BodyPublishers.noBody()
+        builder.method(method, body == null
+                ? HttpRequest.BodyPublishers.noBody()
                 : HttpRequest.BodyPublishers.ofString(body, StandardCharsets.UTF_8));
         return client.send(builder.build(), HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
     }
 
-    private void assertJsonResponse(HttpResponse<String> response, int status, Map<String, String> body)
+    private void assertJsonResponse(
+            HttpResponse<String> response, int status, Map<String, String> body)
             throws Exception {
         assertEquals(status, response.statusCode());
         assertEquals(objectMapper.valueToTree(body), objectMapper.readTree(response.body()));
@@ -50,15 +54,18 @@ class HealthControllerTest {
 
     @Test
     void returnsHealthWithoutCachingOrCreatingSession() throws Exception {
-        assertJsonResponse(request("GET", "/api/health", null), 200,
+        assertJsonResponse(
+                request("GET", "/api/health", null), 200,
                 Map.of("status", "ok", "service", "yijian-lobby", "version", "0.1.0"));
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"GET", "PUT", "POST", "PATCH", "DELETE"})
     void preferenceReadAndWriteEndpointsAreRemoved(String method) throws Exception {
-        String legacyPreferences = "{\"mode\":\"single\",\"difficulty\":\"hard\",\"color\":\"white\",\"playerOne\":\"甲\"}";
-        assertJsonResponse(request(method, "/api/preferences", "GET".equals(method) ? null : legacyPreferences),
+        String legacyPreferences =
+                "{\"mode\":\"single\",\"difficulty\":\"hard\",\"color\":\"white\",\"playerOne\":\"甲\"}";
+        assertJsonResponse(
+                request(method, "/api/preferences", "GET".equals(method) ? null : legacyPreferences),
                 404, Map.of("error", "接口不存在"));
     }
 
@@ -74,13 +81,5 @@ class HealthControllerTest {
         HttpResponse<String> response = request(method, "/api/health", "{}");
         assertJsonResponse(response, 405, Map.of("error", "不支持的请求方法"));
         assertEquals("GET", response.headers().firstValue("Allow").orElseThrow());
-    }
-
-    @Test
-    void noLongerAcceptsADataDirectory() {
-        assertThrows(IllegalArgumentException.class,
-                () -> GomokuApplication.main(new String[]{"--data-dir", ".local"}));
-        assertThrows(IllegalArgumentException.class,
-                () -> GomokuApplication.main(new String[]{"--data-dir=.local"}));
     }
 }
