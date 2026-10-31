@@ -1,3 +1,5 @@
+import { playAudioBuffer } from './playAudioBuffer';
+
 const STONE_SOUND = {
   DURATION_SECONDS: 0.14,
   ATTACK_SECONDS: 0.0006,
@@ -60,27 +62,6 @@ function createStoneSoundBuffer(context: BaseAudioContext): AudioBuffer {
   return buffer;
 }
 
-function reportAudioError(error: unknown) {
-  console.warn('落子音效播放失败，对局可继续。', error);
-}
-
-export async function playStoneSound(): Promise<void> {
-  let context: AudioContext | undefined;
-  try {
-    const audioContext = new AudioContext({ latencyHint: 'interactive' });
-    context = audioContext;
-    const source = audioContext.createBufferSource();
-    source.buffer = createStoneSoundBuffer(audioContext);
-    source.connect(audioContext.destination);
-    source.onended = () => {
-      source.disconnect();
-      void audioContext.close().catch(reportAudioError);
-    };
-    if (audioContext.state === 'suspended') await audioContext.resume();
-    source.start();
-  } catch (error) {
-    // 声卡不可用时只降级音效，不能中断落子或留下未关闭的音频上下文。
-    if (context && context.state !== 'closed') void context.close().catch(reportAudioError);
-    reportAudioError(error);
-  }
+export function playStoneSound(): void {
+  playAudioBuffer(createStoneSoundBuffer, '落子音效');
 }

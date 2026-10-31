@@ -68,7 +68,7 @@ export default function App() {
     if (next) {
       void playStoneSound();
     }
-    setToast(next ? '落子音效已开启' : '落子音效已关闭');
+    setToast(next ? '对局音效已开启' : '对局音效已关闭');
   }
 
   function stoneSound() {
@@ -192,9 +192,9 @@ export default function App() {
             <button
               className={`icon-button sound-button ${sound ? '' : 'muted'}`}
               onClick={toggleSound}
-              aria-label={sound ? '关闭落子音效' : '开启落子音效'}
+              aria-label={sound ? '关闭对局音效' : '开启对局音效'}
               aria-pressed={sound}
-              title={sound ? '关闭落子音效' : '开启落子音效'}
+              title={sound ? '关闭对局音效' : '开启对局音效'}
             >
               {sound ? <Volume2 size={19} /> : <VolumeX size={19} />}
             </button>
@@ -207,7 +207,12 @@ export default function App() {
 
         <main>
           {localGame ? (
-            <LocalGame onExit={goHome} onRules={() => setPanel('rules')} onStone={stoneSound} />
+            <LocalGame
+              onExit={goHome}
+              onRules={() => setPanel('rules')}
+              onStone={stoneSound}
+              soundEnabled={sound}
+            />
           ) : (
             <>
               <section className="hero" aria-labelledby="hero-heading">
@@ -469,14 +474,14 @@ export default function App() {
         >
           <div className="setting-row">
             <div>
-              <h3>落子音效</h3>
-              <p>落下棋子时，听见清脆的一声落子。</p>
+              <h3>对局音效</h3>
+              <p>落子时轻敲木棋盘，获胜划线时听见铅笔划过纸面。</p>
             </div>
             <button
               className={`toggle-switch ${sound ? 'on' : ''}`}
               role="switch"
               aria-checked={sound}
-              aria-label="落子音效"
+              aria-label="对局音效"
               onClick={toggleSound}
             >
               <span />
