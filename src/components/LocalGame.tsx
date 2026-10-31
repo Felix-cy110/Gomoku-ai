@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
-import { ArrowLeft, ArrowUpRight, BookOpen, RotateCcw, Trophy } from 'lucide-react';
-import { BOARD_SIZE, coordinate, createGame, playMove } from '../game/gomoku';
+import { ArrowLeft, ArrowUpRight, BookOpen, RotateCcw, Trophy, Undo2 } from 'lucide-react';
+import { BOARD_SIZE, coordinate, createGame, playMove, undoMove } from '../game/gomoku';
 import '../game.css';
 
 interface Props {
@@ -76,6 +76,12 @@ export default function LocalGame({ onExit, onRules, onStone }: Props) {
   function restart() {
     setGame(createGame());
     focusCell(CENTER);
+  }
+
+  function undo() {
+    if (game.lastMove === null) return;
+    setGame(undoMove);
+    focusCell(game.lastMove);
   }
 
   return (
@@ -234,10 +240,21 @@ export default function LocalGame({ onExit, onRules, onStone }: Props) {
               </div>
             ))}
           </div>
-          <button className="primary-button new-game-button" onClick={restart}>
-            <RotateCcw size={16} />
-            {finished ? '再来一局' : '重新开始'}
-          </button>
+          <div className="game-actions">
+            <button
+              className="undo-button"
+              onClick={undo}
+              disabled={game.moves === 0}
+              title="撤回最近一手"
+            >
+              <Undo2 size={16} aria-hidden="true" />
+              悔棋
+            </button>
+            <button className="primary-button new-game-button" onClick={restart}>
+              <RotateCcw size={16} />
+              {finished ? '再来一局' : '重新开始'}
+            </button>
+          </div>
           <button className="game-rules-button" onClick={onRules}>
             <BookOpen size={15} />
             查看规则

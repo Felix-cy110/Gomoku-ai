@@ -34,6 +34,71 @@ test('不填写用户信息即可开始，黑白交替，黑棋横向获胜后�
   await expect(page.getByRole('heading', { name: '轮到黑棋落子' })).toBeVisible();
 });
 
+test('悔棋逐手恢复回合、手数和最近落子，重下后使用新历史', async ({ page }) => {
+  await openGame(page);
+  const undoButton = page.getByRole('button', { name: '悔棋', exact: true });
+  const counters = page.locator('.game-counters strong');
+  await expect(undoButton).toBeDisabled();
+  await cell(page, 'H8').click();
+  await cell(page, 'I8').click();
+  await expect(undoButton).toBeEnabled();
+  await undoButton.focus();
+  await page.keyboard.press('Enter');
+  await expect(cell(page, 'I8')).toHaveAttribute('data-stone', 'empty');
+  await expect(cell(page, 'I8')).toBeFocused();
+  await expect(page.getByRole('heading', { name: '轮到白棋落子' })).toBeVisible();
+  await expect(counters.nth(0)).toHaveText('1 手');
+  await expect(counters.nth(1)).toHaveText('H8');
+  await expect(cell(page, 'H8').locator('.last-move-mark')).toHaveCount(1);
+
+  await cell(page, 'J8').click();
+  await expect(cell(page, 'J8')).toHaveAttribute('data-stone', 'white');
+  await undoButton.click();
+  await expect(cell(page, 'J8')).toHaveAttribute('data-stone', 'empty');
+  await expect(page.locator('.game-stone')).toHaveCount(1);
+  await undoButton.click();
+  await expect(page.locator('.game-stone')).toHaveCount(0);
+  await expect(page.locator('.last-move-mark')).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: '轮到黑棋落子' })).toBeVisible();
+  await expect(counters.nth(0)).toHaveText('0 手');
+  await expect(counters.nth(1)).toHaveText('—');
+  await expect(undoButton).toBeDisabled();
+
+  await cell(page, 'H8').click();
+  await page.getByRole('button', { name: '重新开始' }).click();
+  await expect(undoButton).toBeDisabled();
+  await cell(page, 'I8').click();
+  await undoButton.click();
+  await expect(page.locator('.game-stone')).toHaveCount(0);
+  await expect(undoButton).toBeDisabled();
+});
+
+for (const [color, points] of [
+  ['黑棋', ['D8', 'A1', 'E8', 'C1', 'F8', 'E1', 'G8', 'G1', 'H8']],
+  ['白棋', ['A1', 'H4', 'C1', 'H5', 'E1', 'H6', 'G1', 'H7', 'I1', 'H8']],
+] as const) {
+  test(`${color}获胜后悔棋清除连线，重新落子可再次获胜`, async ({ page }) => {
+    await openGame(page);
+    for (const point of points) await cell(page, point).click();
+    await expect(page.getByRole('heading', { name: `${color}获胜`, exact: true })).toBeVisible();
+    await expect(page.locator('.winning-line')).toHaveCount(1);
+    await page.getByRole('button', { name: '悔棋', exact: true }).click();
+    await expect(page.locator('.winning-line')).toHaveCount(0);
+    await expect(page.locator('.winning-stone')).toHaveCount(0);
+    await expect(page.locator('.game-stone')).toHaveCount(points.length - 1);
+    await expect(page.getByRole('heading', { name: `轮到${color}落子` })).toBeVisible();
+    await expect(cell(page, 'H8')).toBeEnabled();
+    await expect(cell(page, 'H8')).toBeFocused();
+    await page.keyboard.press('Enter');
+    await expect(page.getByRole('heading', { name: `${color}获胜`, exact: true })).toBeVisible();
+    await expect(page.locator('.winning-line')).toHaveCount(1);
+    await expect(page.locator('.winning-stone')).toHaveCount(5);
+    await page.getByRole('button', { name: '再来一局' }).click();
+    await expect(page.getByRole('button', { name: '悔棋', exact: true })).toBeDisabled();
+    await expect(page.locator('.winning-line')).toHaveCount(0);
+  });
+}
+
 test('白棋纵向五连获胜', async ({ page }) => {
   await openGame(page);
   for (const point of ['A1', 'H4', 'C1', 'H5', 'E1', 'H6', 'G1', 'H7', 'I1', 'H8'])
@@ -91,4 +156,8 @@ test('窄屏棋盘四角均可点击，窗口缩放后不横向溢出', async ({
   const board = await page.getByRole('group', { name: '五子棋棋盘' }).boundingBox();
   expect(board).not.toBeNull();
   expect(Math.abs(board!.width - board!.height)).toBeLessThan(1);
+  await page.getByRole('button', { name: '悔棋', exact: true }).click();
+  await expect(cell(page, 'O15')).toHaveAttribute('data-stone', 'empty');
+  await expect(page.locator('.game-stone')).toHaveCount(3);
+  await expect(page.getByRole('heading', { name: '轮到白棋落子' })).toBeVisible();
 });
