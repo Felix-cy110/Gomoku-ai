@@ -2,6 +2,7 @@
   "name": "gomoku-studio",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "description": "弈间 · 五子棋桌面应用",
   "type": "module",
   "main": "dist-electron/main.js",

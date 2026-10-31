@@ -134,12 +134,24 @@ backend/src/main/java/dev/yijian/gomoku/
 
 ## API 与数据
 
-| 方法 | 路径 | 用途 |
-| --- | --- | --- |
-| GET | `/api/health` | 检查服务状态 |
+| 方法 | 路径          | 用途         |
+| ---- | ------------- | ------------ |
+| GET  | `/api/health` | 检查服务状态 |
 
 原 `/api/preferences` 读写接口及 Java `--data-dir` 参数已移除。模式与音效只使用 React 内存状态，应用不使用 `localStorage`、`sessionStorage`、数据库或 JSON 文件持久化用户数据。
 
 默认设置为普通难度（棋逢对手）、执黑、音效开启。刷新页面或重启应用后恢复默认，棋局与历史记录也不会恢复。旧版本已生成的偏好文件及浏览器数据不再读取或更新，不自动删除。
 
 构建产物、测试截图及 Electron 自身的运行文件不属于用户设置或棋局数据；测试输出仍写入已被 Git 忽略的目录。
+
+## 参与贡献
+
+欢迎提交问题反馈、功能建议、代码、测试和文档。开始前请阅读 [贡献指南](CONTRIBUTING.md)，了解 [Issue 提交入口](https://github.com/Felix-cy110/Gomoku-ai/issues/new/choose)、PR 规则和验证方式；代码规范统一见 [AGENT.md](AGENT.md)。
+
+## 贡献者
+
+项目由 [Felix Sun（@Felix-cy110）](https://github.com/Felix-cy110) 创建与维护。感谢每一位参与者，署名及加入方式见 [贡献者名单](CONTRIBUTORS.md)，完整代码贡献记录见 [GitHub Contributors](https://github.com/Felix-cy110/Gomoku-ai/graphs/contributors)。
+
+## 许可证
+
+本项目采用 [MIT License](LICENSE)，版权声明为 `Copyright (c) 2026 Felix Sun`。第三方依赖及字体等资源遵循各自的许可证。

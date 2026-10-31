@@ -1,0 +1,45 @@
+name: 功能建议
+description: 描述使用场景、希望改进的行为及验收方式。
+title: '[建议] '
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢建议！请先阅读[贡献指南](https://github.com/Felix-cy110/Gomoku-ai/blob/main/CONTRIBUTING.md)。
+        一个 Issue 聚焦一项需求，不要求先给出完整实现。
+  - type: checkboxes
+    id: existing-issues
+    attributes:
+      label: 提交前确认
+      options:
+        - label: 我已搜索现有 Issue，确认没有重复的建议。
+          required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: 使用场景与目前的困难
+      description: 谁在什么情况下需要这个功能？当前流程有什么不便？
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 期望的功能或行为
+      description: 描述期望如何操作、看到什么结果，以及本次需求的范围。
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 验收方式
+      description: 给出可以观察或测试的完成标准。
+      placeholder: 例如：在……情况下，执行……后，可以看到……。
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: 替代方案与补充信息
+      description: 可补充临时解决方式、其他方案、交互草图或兼容性影响。
+    validations:
+      required: false
