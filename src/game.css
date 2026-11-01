@@ -44,7 +44,7 @@
 }
 .game-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 260px;
+  grid-template-columns: minmax(0, 1fr) 280px;
   align-items: start;
   gap: 38px;
   padding-bottom: 35px;
@@ -63,9 +63,19 @@
   font-size: 10px;
   letter-spacing: 1px;
   margin-bottom: 14px;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
 }
-.board-topline > span:last-child {
-  font-family: Arial, sans-serif;
+.board-topline h2 {
+  font-size: 14px;
+  font-weight: 550;
+  color: #526c47;
+}
+.board-move-summary {
+  font-family: 'Noto Sans SC Variable', sans-serif;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
 }
 .play-board {
   --board-padding: clamp(15px, 2vw, 28px);
@@ -259,70 +269,6 @@
 .game-info {
   padding-top: 28px;
 }
-.turn-card {
-  padding: 26px 22px 22px;
-  border: 1px solid #dfe6d5;
-  background: #edf2e6;
-  border-radius: 11px;
-  text-align: center;
-}
-.turn-symbol {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 60px;
-  margin: 20px 0 14px;
-  color: #6c8855;
-}
-.game-turn-stone {
-  display: block;
-  height: 49px;
-  width: 49px;
-  border-radius: 50%;
-  box-shadow: 2px 6px 10px #2d372522;
-}
-.turn-card h2 {
-  font-family: var(--serif);
-  font-weight: 600;
-  font-size: 23px;
-  letter-spacing: 1px;
-}
-.turn-card p {
-  font-size: 11px;
-  color: #89977b;
-  line-height: 1.9;
-  margin-top: 10px;
-}
-.game-counters {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  border-top: 1px solid #dce5d0;
-  margin-top: 24px;
-  padding-top: 18px;
-}
-.game-counters > div + div {
-  border-left: 1px solid #dce5d0;
-}
-.game-counters span {
-  display: block;
-  color: #8f9b80;
-  font-size: 10px;
-  margin-bottom: 5px;
-}
-.game-counters strong {
-  color: #5c7450;
-  font-family: var(--serif);
-  font-size: 21px;
-  font-weight: 500;
-}
-.game-counters small {
-  font-family: 'Noto Sans SC Variable', sans-serif;
-  font-size: 9px;
-}
-.result-card {
-  background: #e6efdc;
-  border-color: #a8bd91;
-}
 .game-players {
   display: grid;
   gap: 9px;
@@ -425,7 +371,7 @@
 }
 @media (max-width: 1190px) {
   .game-layout {
-    grid-template-columns: minmax(0, 1fr) 205px;
+    grid-template-columns: minmax(0, 1fr) 230px;
     gap: 22px;
   }
   .game-heading-row h1 {
@@ -433,18 +379,6 @@
   }
   .game-mode-tag {
     font-size: 9px;
-  }
-  .turn-card {
-    padding: 21px 14px 17px;
-  }
-  .turn-card h2 {
-    font-size: 21px;
-  }
-  .turn-card p {
-    font-size: 10px;
-  }
-  .turn-symbol {
-    margin: 14px 0 10px;
   }
   .game-small-note {
     font-size: 9px;
@@ -461,9 +395,6 @@
     grid-template-columns: 1fr 1fr;
     align-items: start;
     gap: 12px 18px;
-  }
-  .turn-card {
-    grid-row: span 3;
   }
   .game-players,
   .game-actions,
@@ -507,15 +438,6 @@
   }
   .game-info {
     gap: 10px;
-  }
-  .turn-card {
-    padding: 18px 10px;
-  }
-  .turn-card h2 {
-    font-size: 18px;
-  }
-  .turn-card p {
-    font-size: 10px;
   }
   .game-player {
     padding: 12px 10px;

@@ -1,60 +1,39 @@
 import { AnalysisSource } from '../../shared/analysis';
 import type { GameState } from '../game/gomoku';
 import { usePositionAnalysis } from '../hooks/usePositionAnalysis';
+import WinRateChart from './WinRateChart';
 import '../analysis.css';
 
 export default function AnalysisPanel({ game }: { game: GameState }) {
-  const { result, message, canRetry, retry } = usePositionAnalysis(game);
-  const items = result
-    ? [
-        { label: '黑胜', className: 'black', value: result.blackWin },
-        { label: '和棋', className: 'draw', value: result.draw },
-        { label: '白胜', className: 'white', value: result.whiteWin },
-      ]
-    : [];
+  const { points, result, message, canRetry, retry } = usePositionAnalysis(game);
+  const hasGaps = points.some((point, index) => point.moveHistory.length !== index);
   return (
     <section className="analysis-panel" aria-label="局面分析">
       <div className="analysis-title">
-        <h3>{result?.source === AnalysisSource.TERMINAL ? '本局结果' : 'AI 局面预测'}</h3>
+        <h2>胜率走势</h2>
         <span>本机分析</span>
       </div>
-      <div aria-live="polite" aria-atomic="true">
-        {result ? (
-          <>
-            <div className="analysis-bar" aria-hidden="true">
-              {items.map((item) => (
-                <span
-                  key={item.className}
-                  className={`analysis-${item.className}`}
-                  style={{ width: `${item.value * 100}%` }}
-                />
-              ))}
-            </div>
-            <div className="analysis-values">
-              {items.map((item) => (
-                <div key={item.className}>
-                  <span>{item.label}</span>
-                  <strong data-testid={`probability-${item.className}`}>
-                    {(item.value * 100).toFixed(1)}%
-                  </strong>
-                </div>
-              ))}
-            </div>
-            <p>
-              {result.source === AnalysisSource.TERMINAL
-                ? '根据本局规则确定'
-                : 'Rapfi 模型预测，仅供参考'}
-            </p>
-          </>
-        ) : (
-          <p className="analysis-message">{message}</p>
+      <WinRateChart
+        key={game.moveHistory.join(',')}
+        points={points}
+        moveHistory={game.moveHistory}
+        result={result}
+      />
+      <div className="analysis-footer">
+        <p aria-live="polite">
+          {result
+            ? result.source === AnalysisSource.TERMINAL
+              ? '本局已结束'
+              : 'Rapfi 模型预测，仅供参考'
+            : message}
+        </p>
+        {hasGaps && <p>缺失分析的手数以断点保留</p>}
+        {canRetry && (
+          <button className="analysis-retry" onClick={() => void retry()}>
+            重试分析
+          </button>
         )}
       </div>
-      {canRetry && (
-        <button className="analysis-retry" onClick={() => void retry()}>
-          重试分析
-        </button>
-      )}
     </section>
   );
 }

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
-import { ArrowLeft, ArrowUpRight, BookOpen, RotateCcw, Trophy, Undo2 } from 'lucide-react';
+import { ArrowLeft, ArrowUpRight, BookOpen, RotateCcw, Undo2 } from 'lucide-react';
 import { BOARD_SIZE, coordinate, createGame, playMove, undoMove } from '../game/gomoku';
 import WinningLine from './WinningLine';
 import AnalysisPanel from './AnalysisPanel';
@@ -17,6 +17,7 @@ const CENTER = 112;
 
 export default function LocalGame({ onExit, onRules, onStone, soundEnabled }: Props) {
   const [game, setGame] = useState(createGame);
+  const [analysisSession, setAnalysisSession] = useState(0);
   const [focusIndex, setFocusIndex] = useState(CENTER);
   const boardRef = useRef<HTMLDivElement>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
@@ -77,6 +78,7 @@ export default function LocalGame({ onExit, onRules, onStone, soundEnabled }: Pr
   }
 
   function restart() {
+    setAnalysisSession((current) => current + 1);
     setGame(createGame());
     focusCell(CENTER);
   }
@@ -110,8 +112,15 @@ export default function LocalGame({ onExit, onRules, onStone, soundEnabled }: Pr
       <div className="game-layout">
         <div className="board-section">
           <div className="board-topline">
-            <span>弈间 · 一局一会</span>
-            <span>15 × 15</span>
+            <h2 aria-live="polite" aria-atomic="true">
+              {status}
+            </h2>
+            <span className="board-move-summary">
+              已落 <span data-testid="move-count">{game.moves} 手</span> · 最近{' '}
+              <span data-testid="last-move">
+                {game.lastMove === null ? '—' : coordinate(game.lastMove)}
+              </span>
+            </span>
           </div>
           <div className="play-board">
             <div className="board-column-labels" aria-hidden="true">
@@ -174,42 +183,7 @@ export default function LocalGame({ onExit, onRules, onStone, soundEnabled }: Pr
         </div>
 
         <aside className="game-info" aria-label="对局信息">
-          <div className={`turn-card ${finished ? 'result-card' : ''}`}>
-            <span className="eyebrow">{finished ? 'WELL PLAYED' : 'YOUR NEXT MOVE'}</span>
-            <div className="turn-symbol" aria-hidden="true">
-              {finished ? (
-                <Trophy size={31} strokeWidth={1.4} />
-              ) : (
-                <span className={`game-turn-stone stone-${game.turn}`} />
-              )}
-            </div>
-            <div role="status" aria-live="polite" aria-atomic="true">
-              <h2>{status}</h2>
-              <p>
-                {finished
-                  ? game.result === 'draw'
-                    ? '棋盘已满，双方握手言和。'
-                    : '五子相连，这一局下得漂亮。'
-                  : game.moves === 0
-                    ? '黑棋先行，等你落下第一子。'
-                    : `第 ${game.moves + 1} 手，想好就落子吧。`}
-              </p>
-            </div>
-            <div className="game-counters">
-              <div>
-                <span>已落子</span>
-                <strong>
-                  {game.moves}
-                  <small> 手</small>
-                </strong>
-              </div>
-              <div>
-                <span>最近一手</span>
-                <strong>{game.lastMove === null ? '—' : coordinate(game.lastMove)}</strong>
-              </div>
-            </div>
-          </div>
-          <AnalysisPanel game={game} />
+          <AnalysisPanel key={analysisSession} game={game} />
           <div className="game-players">
             {(['black', 'white'] as const).map((color) => (
               <div

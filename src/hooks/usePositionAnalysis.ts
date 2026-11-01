@@ -5,7 +5,7 @@ import {
   type EngineStatus,
   type PositionAnalysis,
 } from '../../shared/analysis';
-import { terminalAnalysis } from '../game/analysis';
+import { retainAnalysisHistory, terminalAnalysis, type AnalysisPoint } from '../game/analysis';
 import type { GameState } from '../game/gomoku';
 
 const CONNECTION_ERROR: EngineStatus = {
@@ -24,6 +24,12 @@ export function usePositionAnalysis(game: GameState) {
     result?: PositionAnalysis;
     error?: string;
   }>();
+  const [history, setHistory] = useState<AnalysisPoint[]>([]);
+  const points = retainAnalysisHistory(history, game.moveHistory);
+
+  useEffect(() => {
+    setHistory((current) => retainAnalysisHistory(current, game.moveHistory));
+  }, [game]);
 
   useEffect(() => {
     if (!bridge) return;
@@ -57,8 +63,15 @@ export function usePositionAnalysis(game: GameState) {
         .analyze({ id, moveHistory: game.moveHistory })
         .then((reply) => {
           if (disposed) return;
-          if (reply.ok && reply.id === id) setSnapshot({ game, result: reply.analysis });
-          else if (!reply.ok && reply.code !== AnalysisError.CANCELLED)
+          if (reply.ok && reply.id === id) {
+            setSnapshot({ game, result: reply.analysis });
+            setHistory((current) => [
+              ...retainAnalysisHistory(current, game.moveHistory).filter(
+                (point) => point.moveHistory.length !== game.moves,
+              ),
+              { moveHistory: game.moveHistory, analysis: reply.analysis },
+            ]);
+          } else if (!reply.ok && reply.code !== AnalysisError.CANCELLED)
             setSnapshot({ game, error: reply.message });
         })
         .catch(() => {
@@ -87,6 +100,7 @@ export function usePositionAnalysis(game: GameState) {
   const current =
     snapshot?.game === game && status.state === EngineState.READY ? snapshot : undefined;
   return {
+    points: terminal ? [...points, { moveHistory: game.moveHistory, analysis: terminal }] : points,
     result: terminal ?? current?.result,
     message: terminal
       ? '本局已结束'
