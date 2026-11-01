@@ -1,14 +1,27 @@
-import { app, BrowserWindow, dialog, ipcMain, session } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, session, type IpcMainInvokeEvent } from 'electron';
 import { spawn, type ChildProcess } from 'node:child_process';
 import { createServer } from 'node:net';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import path from 'node:path';
+import { RapfiEngine } from './engine/rapfi.js';
+import { engineOptions } from './engine/options.js';
 
-const projectDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const projectDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const sessionPartition = 'yijian-ephemeral';
 let javaProcess: ChildProcess | undefined;
 let mainWindow: BrowserWindow | undefined;
 let apiOrigin = '';
+let engine: RapfiEngine | undefined;
+let quitting = false;
+let cleanupComplete = false;
+
+function verifySender(event: IpcMainInvokeEvent) {
+  if (
+    event.sender !== mainWindow?.webContents ||
+    event.senderFrame !== mainWindow.webContents.mainFrame
+  )
+    throw new Error('Untrusted sender');
+}
 
 function freePort(): Promise<number> {
   return new Promise((resolve, reject) => {
@@ -86,18 +99,20 @@ function createWindow() {
     autoHideMenuBar: true,
     webPreferences: {
       partition: sessionPartition,
-      preload: path.join(projectDirectory, 'dist-electron/preload.cjs'),
+      preload: path.join(projectDirectory, 'dist-electron/electron/preload.cjs'),
       nodeIntegration: false,
       contextIsolation: true,
       sandbox: true,
     },
   });
   mainWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+  mainWindow.webContents.on('did-start-loading', () => engine?.cancelAll());
   mainWindow.webContents.on('will-navigate', (event, url) => {
     if (url.split('#')[0] !== allowedDocument.split('#')[0]) event.preventDefault();
   });
   mainWindow.once('ready-to-show', () => mainWindow?.show());
   mainWindow.on('closed', () => {
+    engine?.cancelAll();
     mainWindow = undefined;
   });
   if (developmentUrl) void mainWindow.loadURL(developmentUrl);
@@ -128,13 +143,33 @@ else {
           responseHeaders: { ...details.responseHeaders, 'Content-Security-Policy': [csp] },
         });
       });
+      engine = new RapfiEngine(
+        engineOptions(
+          app.isPackaged ? process.resourcesPath : path.join(projectDirectory, 'resources'),
+        ),
+      );
+      void engine.start();
+      ipcMain.handle('analysis:status', (event) => {
+        verifySender(event);
+        return engine!.getStatus();
+      });
+      ipcMain.handle('analysis:position', (event, request: unknown) => {
+        verifySender(event);
+        return engine!.analyze(request);
+      });
+      ipcMain.handle('analysis:cancel', (event, id: unknown) => {
+        verifySender(event);
+        if (typeof id !== 'string' || id.length > 80) throw new Error('Invalid analysis id');
+        engine!.cancel(id);
+      });
+      ipcMain.handle('analysis:restart', (event) => {
+        verifySender(event);
+        if (quitting) return engine!.getStatus();
+        return engine!.start();
+      });
       await startBackend();
       ipcMain.handle('lobby:health', async (event) => {
-        if (
-          event.sender !== mainWindow?.webContents ||
-          event.senderFrame !== mainWindow.webContents.mainFrame
-        )
-          throw new Error('Untrusted sender');
+        verifySender(event);
         const response = await fetch(`${apiOrigin}/api/health`, {
           signal: AbortSignal.timeout(5000),
         });
@@ -156,8 +191,20 @@ else {
     });
 }
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit();
+  app.quit();
 });
-app.on('before-quit', () => {
-  javaProcess?.kill();
+app.on('before-quit', (event) => {
+  if (cleanupComplete) return;
+  event.preventDefault();
+  if (quitting) return;
+  quitting = true;
+  void (async () => {
+    try {
+      await engine?.stop();
+    } finally {
+      javaProcess?.kill();
+      cleanupComplete = true;
+      app.quit();
+    }
+  })();
 });

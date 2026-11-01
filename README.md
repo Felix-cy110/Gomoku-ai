@@ -8,6 +8,7 @@
 - **单人模式**：选择初出茅庐／棋逢对手／高手过招三档难度，以及执黑／执白。
 - **双人模式**：点击「开始双人对弈」直接进入 15 × 15 棋盘，无需登录、昵称或其他设置。第一手黑棋，第二手白棋，之后交替落子。
 - 横、竖或任意斜向连续五子及以上即获胜，标出获胜连线并停止落子；棋盘下满无人获胜则和棋。支持悔棋、重新开始、再来一局和返回首页。每次悔棋撤回最近一手，可连续撤回；获胜或和棋后也可悔棋继续对局，空棋盘时禁用。
+- **本地局面分析**：桌面端使用 Rapfi 250615 预训练 NNUE 权重，在本机 CPU 上预测黑胜、白胜与和棋概率。客户端启动时初始化，落子、悔棋和重开后更新，退出时回收引擎；Windows 强制结束主进程时也会自动清理引擎。
 - 模式、难度、执子和音效设置仅保存在当前页面内存中，刷新或重启恢复默认。
 - 自由五子棋规则说明、对局记录空状态、对局音效开关。落子采用木棋盘敲击声，获胜连线绘制时同步播放铅笔划过纸面的声音；悔棋、重开、离开对局或静音会停止划线声，系统减少动态效果时不播放划线声。
 - 弹窗支持 Escape 关闭、焦点恢复、键盘操作，动效遵循系统减少动态效果设置。
@@ -19,6 +20,7 @@
 - Node.js 22.12+，或 24+（本地使用 Node 24）。
 - JDK 17+，`java` 和 `javac` 可用。
 - Maven 3.9+，`mvn` 可用。
+- 本地分析当前支持 Windows x64，CPU 需要 SSE4.1；使用系统 .NET Framework 4.x 运行守护程序。构建准备需要 Windows 自带的 `tar.exe`、PowerShell 和 Framework64 下的 `csc.exe`。无需 Python、CUDA 或显卡。
 
 ## 启动
 
@@ -27,7 +29,7 @@ npm install
 npm run dev
 ```
 
-`dev` 会先使用 Maven 构建 Spring Boot 可执行 JAR，再编译 Electron 主进程，并自动启动后端、Vite 与 Electron 桌面窗口，无需额外启动后端。React 页面支持热更新，修改 Electron 主进程或 Java 源码后需重新运行命令。
+`dev` 会先准备本地引擎与模型，再使用 Maven 构建 Spring Boot 可执行 JAR、编译 Electron 主进程，并自动启动后端、Vite 与 Electron 桌面窗口，无需额外启动后端。首次准备需要联网下载约 35 MB 的官方引擎包；后续使用已校验的下载缓存。应用运行及分析过程不访问模型服务器。React 页面支持热更新，修改 Electron 主进程或 Java 源码后需重新运行命令。
 
 只在浏览器预览首页：
 
@@ -36,6 +38,8 @@ npm run dev:web
 ```
 
 访问 `http://127.0.0.1:5187`。开发环境 Java 服务监听 `127.0.0.1:18087`，由 Vite 代理 `/api`。可通过 `GOMOKU_WEB_PORT` 和 `GOMOKU_API_PORT` 修改端口；若已占用，启动脚本会明确报错。
+
+网页预览可以正常下棋，但不能启动本机分析引擎，会提示在桌面客户端使用本地分析。
 
 单独开发后端时，在项目根目录运行：
 
@@ -63,22 +67,51 @@ npm start
 
 生产模式下 Electron 自动为 Java 服务选择本机可用端口，通过受限 IPC 调用后端。关闭桌面应用时会终止其创建的 Java 进程。当前尚未配置安装包打包，也未内置 JRE，运行仍需要本机 Java 环境。
 
+## 本地 Rapfi 分析
+
+分析调用链为 `React → preload 受限 IPC → Electron 引擎管理器 → Rapfi 子进程`，不经过 Java HTTP 服务。只暴露状态查询、局面分析、取消及重试能力，页面不能执行任意命令或指定可执行文件。
+
+- 使用官方 `250615` 发布包中的 SSE 引擎和 `mix9svqfreestyle_bsmix.bin.lz4` 权重；下载包固定 SHA256，禁止混用最新权重与旧引擎。
+- 初始化时发送 15×15 自由规则配置，并实际运行一次空棋盘评估，确认神经网络加载成功后才标记为就绪。
+- `YXBOARD` 还原完整落子序列，`TRACESEARCH` 读取固定黑方视角的 `WR / LR / DR`，以 `ABOUT` 响应作为本次协议输出的结束标记。展示的是模型直接预测，未经搜索，也不等同于某个人类棋手的实际胜率。
+- 三项概率包含和棋；只对四位小数输出的舍入误差做归一化。收到传统估值、缺少网络输出或异常概率时明确报错。终局复用游戏规则给出确定结果。
+- 任务串行执行，只保留最新待处理局面。取消正在运行的直接评估时丢弃其结果、读完协议响应再继续；不把过期结果显示到新局面。
+- 空闲时关闭后台思考，模型保留在内存中；配置使用一个线程与 1 MiB 置换表。该大小不包含模型和进程的其他内存。数据库关闭，不保存棋局或分析记录。
+- 正常退出发送 `END`，超过关闭期限终止守护进程。Windows 守护程序使用 Job Object 的 `KILL_ON_JOB_CLOSE`，并监视 Electron 主进程句柄；主进程强制退出时同样回收 Rapfi。
+
+单独准备资源：
+
+```powershell
+npm run engine:prepare
+```
+
+资源位于 `resources/rapfi/`，下载缓存位于 `.local/rapfi-download/`，均已忽略，不提交模型或二进制。原始配置维护在 `config/rapfi.toml`，准备脚本会复制到资源目录。引擎加载失败时仍可双人对弈，可在分析面板点击“重试分析”；文件缺失时重新执行准备命令。
+
+可通过环境变量调整 `GOMOKU_ENGINE_STARTUP_TIMEOUT_MS`（默认 30000）、`GOMOKU_ENGINE_ANALYSIS_TIMEOUT_MS`（默认 5000）和 `GOMOKU_ENGINE_SHUTDOWN_TIMEOUT_MS`（默认 1500），单位毫秒，范围 100～120000。
+
+当前完成的是 Windows x64 桌面源码运行与生产构建，尚未生成安装包。以后配置安装包时，需要把整个 `resources/rapfi/` 作为独立资源复制到 `process.resourcesPath/rapfi/`，不能只打入 ASAR。用户运行时不需要下载模型或编译守护程序。引擎和权重的来源、许可证及分发要求见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
+
 ## 验证
 
 ```powershell
 npm run typecheck
+npm run engine:prepare
+npm run test:engine
 npm run test:backend
 npx playwright install chromium --only-shell
 npm run test:e2e
 npm run build
 npm run test:desktop
+npm run format:check
 ```
 
 后端测试使用 `@SpringBootTest` 在随机端口启动真实 HTTP 服务，覆盖健康检查 JSON、禁止缓存与 `nosniff` 响应头、不创建会话 Cookie、旧偏好读写接口移除、未知路径的 404、请求方法限制的 405，以及数据目录参数移除。另使用完整 Spring 上下文配合 MockMvc，验证自定义服务配置经过 Service 层后正确返回。
 
 `test:e2e` 验证 Vite 到 Spring Boot 的健康检查代理，并运行棋局逻辑和页面测试。棋局逻辑覆盖黑白交替、重复与越界落子、双方四个方向的五连、长连、缺口和阻断、跨行边界以及满盘和棋。页面测试覆盖双人落子和胜负、键盘与窄屏操作，以及设置和音效刷新后恢复默认、旧音效数据不再读取、不调用浏览器存储或偏好接口、棋局刷新后清空。测试使用独立的 `5197` / `18097` 端口。
 
-`test:desktop` 会构建并实际打开 Electron，验证生产页面、健康检查桥接、Java 自动启动、非持久化会话、设置刷新和重启后恢复默认、不生成偏好文件，以及双人落子获胜与重新开始。结束后自动关闭窗口；测试使用 `.local/` 下的独立运行目录。
+`test:engine` 验证请求校验、协议概率解析、最新任务队列、取消、缺少网络输出、超时、引擎崩溃和关闭期限，并实际加载官方模型验证概率、悔棋复现、重启、正常退出与父进程强制退出后的进程清理。该测试需先准备引擎资源。
+
+`test:desktop` 会构建并实际打开 Electron，验证真实模型初始化、预测显示、终局确定结果，以及正常退出和强制结束 Electron 主进程后的 Rapfi 清理；同时覆盖生产页面、健康检查桥接、Java 自动启动、非持久化会话、设置刷新和重启后恢复默认、不生成偏好文件，以及双人落子获胜与重新开始。结束后自动关闭窗口；测试使用 `.local/` 下的独立运行目录。网页测试还验证过期分析不会覆盖落子、悔棋和重开的新结果。
 
 ## 目录
 
@@ -86,13 +119,19 @@ npm run test:desktop
 src/             React 页面、样式与内存中的模式设置
 src/game/        本地双人棋局状态与胜负判断
 electron/        Electron 主进程和受限 preload 桥接
+electron/engine/ Rapfi 生命周期、协议与配置
+shared/          前端与主进程共用的类型和业务枚举
+native/windows/  Windows Job Object 守护程序源码
+config/          随引擎复制的版本匹配配置
+resources/rapfi/ 本地引擎和权重（生成目录，Git 忽略）
 backend/         Spring Boot 服务、配置与集成测试
 scripts/         开发启动与进程管理
 tests/           Playwright 端到端测试
+tests-engine/    协议、真实模型与进程生命周期测试
 public/          本地图标
 ```
 
-后端使用 Spring Boot 3.5.11、Spring MVC 和内嵌 Tomcat，Java 版本为 17；Spring Boot 与 Java 版本对齐参考项目 CampusSys。入口为 `GomokuApplication`，通过 Spring Boot Maven 插件打包为 `backend/target/gomoku-backend.jar`。当前仅提供健康检查，不读写用户数据，也不需要数据库或 Redis。双人棋局由 TypeScript 本地处理，后续可以在 `backend/` 增加 AI 模块。React 页面未直接暴露 Node.js 能力，Electron 启用上下文隔离、沙箱与不写磁盘缓存的内存会话。
+后端使用 Spring Boot 3.5.11、Spring MVC 和内嵌 Tomcat，Java 版本为 17；Spring Boot 与 Java 版本对齐参考项目 CampusSys。入口为 `GomokuApplication`，通过 Spring Boot Maven 插件打包为 `backend/target/gomoku-backend.jar`。当前仅提供健康检查，不读写用户数据，也不需要数据库或 Redis。双人棋局由 TypeScript 本地处理，本地 AI 分析由 Electron 管理 Rapfi 子进程完成。React 页面未直接暴露 Node.js 能力，Electron 启用上下文隔离、沙箱与不写磁盘缓存的内存会话。
 
 中文字体由 npm 字体包提供，随应用本地构建，无需运行时从外网加载字体或图片。
 

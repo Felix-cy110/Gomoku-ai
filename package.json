@@ -5,20 +5,22 @@
   "license": "MIT",
   "description": "弈间 · 五子棋桌面应用",
   "type": "module",
-  "main": "dist-electron/main.js",
+  "main": "dist-electron/electron/main.js",
   "scripts": {
-    "dev": "npm run backend:build && tsc -p tsconfig.electron.json && node scripts/dev.mjs --desktop",
+    "dev": "npm run engine:prepare && npm run backend:build && tsc -p tsconfig.electron.json && node scripts/dev.mjs --desktop",
     "dev:web": "npm run backend:build && node scripts/dev.mjs --web",
-    "build": "npm run typecheck && vite build && tsc -p tsconfig.electron.json && npm run backend:build",
+    "build": "npm run engine:prepare && npm run typecheck && vite build && tsc -p tsconfig.electron.json && npm run backend:build",
     "start": "electron .",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.electron.json --noEmit",
-    "format": "prettier --write src electron scripts tests *.json *.ts index.html",
-    "format:check": "prettier --check src electron scripts tests *.json *.ts index.html",
+    "format": "prettier --write src shared electron scripts tests tests-engine *.json *.ts index.html",
+    "format:check": "prettier --check src shared electron scripts tests tests-engine *.json *.ts index.html",
     "backend:build": "mvn -q -f backend/pom.xml -DskipTests package",
     "test:backend": "mvn -q -f backend/pom.xml test",
     "test:e2e": "playwright test",
     "test:desktop": "npm run build && node scripts/smoke-desktop.mjs",
-    "test": "npm run test:backend && npm run test:e2e"
+    "test": "npm run test:backend && npm run test:e2e",
+    "engine:prepare": "node scripts/prepare-rapfi.mjs",
+    "test:engine": "tsc -p tsconfig.electron.json && node --test tests-engine/*.test.mjs"
   },
   "dependencies": {
     "@fontsource-variable/noto-sans-sc": "5.3.1",

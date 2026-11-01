@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { ArrowLeft, ArrowUpRight, BookOpen, RotateCcw, Trophy, Undo2 } from 'lucide-react';
 import { BOARD_SIZE, coordinate, createGame, playMove, undoMove } from '../game/gomoku';
 import WinningLine from './WinningLine';
+import AnalysisPanel from './AnalysisPanel';
 import '../game.css';
 
 interface Props {
@@ -208,6 +209,7 @@ export default function LocalGame({ onExit, onRules, onStone, soundEnabled }: Pr
               </div>
             </div>
           </div>
+          <AnalysisPanel game={game} />
           <div className="game-players">
             {(['black', 'white'] as const).map((color) => (
               <div

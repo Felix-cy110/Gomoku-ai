@@ -1,0 +1,27 @@
+# 与官方 250615 发布包配套，只启用当前产品的自由五子棋模型。
+[requirement]
+min_version = [0, 43, 1]
+max_version = [0, 43, 1]
+
+[general]
+reload_config_each_move = false
+default_thread_num = 1
+message_mode = "normal"
+coord_conversion_mode = "none"
+default_candidate_range = "square3_line4"
+default_tt_size_kb = 1024
+memory_reserved_mb = 0
+
+[model]
+binary_file = "model210901.bin"
+
+[model.evaluator]
+type = "mix9svq"
+draw_black_winrate = 0.5
+draw_ratio = 1.0
+
+[[model.evaluator.weights]]
+weight_file = "mix9svqfreestyle_bsmix.bin.lz4"
+
+[database]
+enable_by_default = false
