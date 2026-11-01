@@ -7,13 +7,14 @@ import {
 } from '../../shared/analysis';
 import { retainAnalysisHistory, terminalAnalysis, type AnalysisPoint } from '../game/analysis';
 import type { GameState } from '../game/gomoku';
+import type { Difficulty } from '../../shared/game-types';
 
 const CONNECTION_ERROR: EngineStatus = {
   state: EngineState.ERROR,
   message: '无法连接本地分析引擎，请重试。',
 };
 
-export function usePositionAnalysis(game: GameState) {
+export function usePositionAnalysis(game: GameState, session = 0, computerDifficulty?: Difficulty) {
   const bridge = window.desktop?.analysis;
   const [status, setStatus] = useState<EngineStatus>({
     state: EngineState.STARTING,
@@ -23,13 +24,23 @@ export function usePositionAnalysis(game: GameState) {
     game: GameState;
     result?: PositionAnalysis;
     error?: string;
+    computerMove?: number;
   }>();
-  const [history, setHistory] = useState<AnalysisPoint[]>([]);
-  const points = retainAnalysisHistory(history, game.moveHistory);
+  const [attempt, setAttempt] = useState(0);
+  const [history, setHistory] = useState<{ session: number; points: AnalysisPoint[] }>({
+    session,
+    points: [],
+  });
+  const points =
+    history.session === session ? retainAnalysisHistory(history.points, game.moveHistory) : [];
 
   useEffect(() => {
-    setHistory((current) => retainAnalysisHistory(current, game.moveHistory));
-  }, [game]);
+    setHistory((current) => ({
+      session,
+      points:
+        current.session === session ? retainAnalysisHistory(current.points, game.moveHistory) : [],
+    }));
+  }, [game, session]);
 
   useEffect(() => {
     if (!bridge) return;
@@ -61,16 +72,51 @@ export function usePositionAnalysis(game: GameState) {
     const timer = setTimeout(() => {
       void bridge
         .analyze({ id, moveHistory: game.moveHistory })
-        .then((reply) => {
+        .then(async (reply) => {
           if (disposed) return;
           if (reply.ok && reply.id === id) {
             setSnapshot({ game, result: reply.analysis });
-            setHistory((current) => [
-              ...retainAnalysisHistory(current, game.moveHistory).filter(
-                (point) => point.moveHistory.length !== game.moves,
-              ),
-              { moveHistory: game.moveHistory, analysis: reply.analysis },
-            ]);
+            setHistory((current) => ({
+              session,
+              points: [
+                ...retainAnalysisHistory(
+                  current.session === session ? current.points : [],
+                  game.moveHistory,
+                ).filter((point) => point.moveHistory.length !== game.moves),
+                { moveHistory: game.moveHistory, analysis: reply.analysis },
+              ],
+            }));
+            // 同一局面先评估再搜索，避免胜率请求取消模型正在执行的落子任务。
+            if (computerDifficulty) {
+              const moveReply = await bridge.bestMove({
+                id,
+                moveHistory: game.moveHistory,
+                difficulty: computerDifficulty,
+              });
+              if (disposed) return;
+              if (moveReply.ok && moveReply.id === id) {
+                const move = moveReply.move;
+                if (
+                  !Number.isInteger(move) ||
+                  move < 0 ||
+                  move >= game.board.length ||
+                  game.board[move]
+                )
+                  setSnapshot({
+                    game,
+                    result: reply.analysis,
+                    error: '模型返回了无效落点，请重试。',
+                  });
+                else setSnapshot({ game, result: reply.analysis, computerMove: move });
+              } else if (!moveReply.ok)
+                setSnapshot({ game, result: reply.analysis, error: moveReply.message });
+              else
+                setSnapshot({
+                  game,
+                  result: reply.analysis,
+                  error: '模型响应与当前请求不匹配，请重试。',
+                });
+            }
           } else if (!reply.ok && reply.code !== AnalysisError.CANCELLED)
             setSnapshot({ game, error: reply.message });
         })
@@ -83,7 +129,7 @@ export function usePositionAnalysis(game: GameState) {
       clearTimeout(timer);
       void bridge.cancel(id).catch((error: unknown) => console.warn('取消分析失败', error));
     };
-  }, [bridge, game, status.state]);
+  }, [bridge, game, session, computerDifficulty, status.state, attempt]);
 
   async function retry() {
     if (!bridge) return;
@@ -91,6 +137,7 @@ export function usePositionAnalysis(game: GameState) {
     setStatus({ state: EngineState.STARTING, message: '正在重新初始化…' });
     try {
       setStatus(await bridge.restart());
+      setAttempt((current) => current + 1);
     } catch {
       setStatus(CONNECTION_ERROR);
     }
@@ -100,6 +147,8 @@ export function usePositionAnalysis(game: GameState) {
   const current =
     snapshot?.game === game && status.state === EngineState.READY ? snapshot : undefined;
   return {
+    computerMove: current?.computerMove,
+    error: current?.error,
     points: terminal ? [...points, { moveHistory: game.moveHistory, analysis: terminal }] : points,
     result: terminal ?? current?.result,
     message: terminal

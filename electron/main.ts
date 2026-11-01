@@ -157,6 +157,10 @@ else {
         verifySender(event);
         return engine!.analyze(request);
       });
+      ipcMain.handle('analysis:move', (event, request: unknown) => {
+        verifySender(event);
+        return engine!.bestMove(request);
+      });
       ipcMain.handle('analysis:cancel', (event, id: unknown) => {
         verifySender(event);
         if (typeof id !== 'string' || id.length > 80) throw new Error('Invalid analysis id');

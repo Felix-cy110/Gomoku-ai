@@ -4,8 +4,14 @@ import { usePositionAnalysis } from '../hooks/usePositionAnalysis';
 import WinRateChart from './WinRateChart';
 import '../analysis.css';
 
-export default function AnalysisPanel({ game }: { game: GameState }) {
-  const { points, result, message, canRetry, retry } = usePositionAnalysis(game);
+export default function AnalysisPanel({
+  game,
+  analysis,
+}: {
+  game: GameState;
+  analysis: ReturnType<typeof usePositionAnalysis>;
+}) {
+  const { points, result, message, canRetry, retry, error } = analysis;
   const hasGaps = points.some((point, index) => point.moveHistory.length !== index);
   return (
     <section className="analysis-panel" aria-label="局面分析">
@@ -21,11 +27,12 @@ export default function AnalysisPanel({ game }: { game: GameState }) {
       />
       <div className="analysis-footer">
         <p aria-live="polite">
-          {result
-            ? result.source === AnalysisSource.TERMINAL
-              ? '本局已结束'
-              : 'Rapfi 模型预测，仅供参考'
-            : message}
+          {error ??
+            (result
+              ? result.source === AnalysisSource.TERMINAL
+                ? '本局已结束'
+                : 'Rapfi 模型预测，仅供参考'
+              : message)}
         </p>
         {hasGaps && <p>缺失分析的手数以断点保留</p>}
         {canRetry && (

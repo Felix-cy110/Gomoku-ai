@@ -5,7 +5,12 @@ import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import { RapfiEngine } from '../dist-electron/electron/engine/rapfi.js';
 import { engineOptions } from '../dist-electron/electron/engine/options.js';
-import { parseProbabilities, validatePosition } from '../dist-electron/electron/engine/protocol.js';
+import {
+  parseProbabilities,
+  validatePosition,
+  validateMoveRequest,
+  parseMove,
+} from '../dist-electron/electron/engine/protocol.js';
 import { engineProcesses, isAlive, waitUntil } from './processes.mjs';
 
 const fakeOptions = (mode) => ({
@@ -35,6 +40,46 @@ test('只接收黑方视角的模型三项概率，不把传统评分当成胜�
   ])
     assert.throws(() => parseProbabilities([line]));
 });
+
+test('落子请求校验棋力与终局，并拒绝越界、已占据和非坐标响应', () => {
+  assert.throws(() => validateMoveRequest({ id: 'move', moveHistory: [], difficulty: 'unknown' }));
+  assert.throws(() =>
+    validateMoveRequest({
+      id: 'move',
+      moveHistory: [0, 15, 1, 16, 2, 17, 3, 18, 4],
+      difficulty: 'normal',
+    }),
+  );
+  const { game } = validateMoveRequest({ id: 'move', moveHistory: [112], difficulty: 'normal' });
+  assert.equal(parseMove(['MESSAGE detail', '8,7'], game), 113);
+  for (const lines of [['7,7'], ['15,0'], ['0,15'], ['-1,0'], ['SWAP'], ['8,7', '9,7']])
+    assert.throws(() => parseMove(lines, game));
+});
+
+test('搜索取消后排空响应，可继续评估与搜索新局面', async (t) => {
+  const engine = new RapfiEngine(fakeOptions('slow'));
+  t.after(() => engine.stop());
+  assert.equal((await engine.start()).state, 'ready');
+  const oldMove = engine.bestMove({ id: 'old-move', moveHistory: [], difficulty: 'hard' });
+  engine.cancel('old-move');
+  const analysis = engine.analyze({ id: 'new-analysis', moveHistory: [112] });
+  assert.equal((await oldMove).code, 'cancelled');
+  assert.equal((await analysis).ok, true);
+  const next = await engine.bestMove({ id: 'new-move', moveHistory: [112], difficulty: 'normal' });
+  assert.equal(next.ok, true);
+  assert.equal(next.move, 113);
+});
+
+for (const mode of ['invalid-move', 'search-hang']) {
+  test('搜索异常 ' + mode + ' 明确失败，不生成替代落点', async (t) => {
+    const engine = new RapfiEngine({ ...fakeOptions(mode), analysisTimeoutMs: 100 });
+    t.after(() => engine.stop());
+    assert.equal((await engine.start()).state, 'ready');
+    const result = await engine.bestMove({ id: 'bad-move', moveHistory: [], difficulty: 'easy' });
+    assert.equal(result.ok, false);
+    assert.equal(result.code, 'failed');
+  });
+}
 
 test('队列只保留最新局面，取消与终局会使旧结果失效', async (t) => {
   const engine = new RapfiEngine(fakeOptions('slow'));
@@ -105,6 +150,34 @@ test('真实 Rapfi：权重预热、固定黑方视角、悔棋复现、重启�
   await waitUntil(() => owned.every((row) => !isAlive(row.ProcessId)));
   assert.equal((await engine.start()).state, 'ready');
   assert.equal((await engine.analyze({ id: 'empty', moveHistory: [] })).ok, true);
+  const opening = await engine.bestMove({ id: 'opening', moveHistory: [], difficulty: 'normal' });
+  assert.equal(opening.ok, true);
+  assert.equal(opening.move, 112);
+  for (const difficulty of ['easy', 'normal', 'hard']) {
+    const reply = await engine.bestMove({
+      id: 'reply-' + difficulty,
+      moveHistory: [112],
+      difficulty,
+    });
+    assert.equal(reply.ok, true);
+    assert.notEqual(reply.move, 112);
+    assert.ok(reply.move >= 0 && reply.move < 225);
+  }
+  const win = await engine.bestMove({
+    id: 'win',
+    moveHistory: [0, 15, 1, 16, 2, 17, 3, 19],
+    difficulty: 'normal',
+  });
+  assert.equal(win.ok, true);
+  assert.equal(win.move, 4);
+  const cancelledSearch = engine.bestMove({
+    id: 'cancel-search',
+    moveHistory: [112, 113, 97, 98],
+    difficulty: 'hard',
+  });
+  engine.cancel('cancel-search');
+  assert.equal((await cancelledSearch).code, 'cancelled');
+  assert.equal((await engine.analyze({ id: 'after-search', moveHistory: [112] })).ok, true);
 });
 
 test('强制结束父进程后，Windows 守护进程和 Rapfi 都自动退出', async (t) => {

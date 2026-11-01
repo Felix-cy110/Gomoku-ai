@@ -1,3 +1,5 @@
+import type { Difficulty } from './game-types.js';
+
 export const EngineState = {
   STARTING: 'starting',
   READY: 'ready',
@@ -26,6 +28,10 @@ export interface AnalysisRequest {
   moveHistory: readonly number[];
 }
 
+export interface MoveRequest extends AnalysisRequest {
+  difficulty: Difficulty;
+}
+
 export interface Probabilities {
   blackWin: number;
   whiteWin: number;
@@ -37,13 +43,14 @@ export interface PositionAnalysis extends Probabilities {
   elapsedMs: number;
 }
 
-export type AnalysisReply =
-  | { id: string; ok: true; analysis: PositionAnalysis }
-  | { id: string; ok: false; code: AnalysisError; message: string };
+export type EngineFailure = { id: string; ok: false; code: AnalysisError; message: string };
+export type AnalysisReply = { id: string; ok: true; analysis: PositionAnalysis } | EngineFailure;
+export type MoveReply = { id: string; ok: true; move: number } | EngineFailure;
 
 export interface AnalysisBridge {
   getStatus(): Promise<EngineStatus>;
   analyze(request: AnalysisRequest): Promise<AnalysisReply>;
+  bestMove(request: MoveRequest): Promise<MoveReply>;
   cancel(id: string): Promise<void>;
   restart(): Promise<EngineStatus>;
 }
