@@ -1,6 +1,9 @@
+import type { StoneColor } from '../shared/game-types';
+import type { AnalysisBridge } from '../shared/analysis';
+export type { StoneColor } from '../shared/game-types';
+
 export type GameMode = 'single' | 'local';
 export type Difficulty = 'easy' | 'normal' | 'hard';
-export type StoneColor = 'black' | 'white';
 
 export interface GamePreferences {
   mode: GameMode;
@@ -24,6 +27,7 @@ declare global {
   interface Window {
     desktop?: {
       getHealth: () => Promise<{ status: string; service: string; version: string }>;
+      analysis: AnalysisBridge;
     };
   }
 }

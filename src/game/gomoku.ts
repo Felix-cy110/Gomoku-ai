@@ -1,4 +1,4 @@
-import type { StoneColor } from '../types';
+import type { StoneColor } from '../../shared/game-types.js';
 
 export const BOARD_SIZE = 15;
 export const CELL_COUNT = BOARD_SIZE * BOARD_SIZE;
