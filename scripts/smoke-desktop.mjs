@@ -71,20 +71,33 @@ try {
   await expect(window.getByRole('textbox')).toHaveCount(0);
   await expect(window.getByRole('heading', { name: '轮到黑棋落子' })).toBeVisible();
   await expect(window.getByTestId('probability-black')).toBeVisible();
+  await expect(window.getByRole('heading', { name: '胜率走势' })).toBeVisible();
+  await expect(window.getByTestId('chart-point-black')).toHaveCount(1);
   await window.getByRole('button', { name: /^H8，/ }).click();
   await expect(window.getByTestId('probability-black')).toHaveText('72.0%');
   await expect(window.getByTestId('probability-white')).toHaveText('6.8%');
+  await expect(window.getByTestId('chart-point-black')).toHaveCount(2);
+  await expect(window.getByTestId('chart-line-black')).toHaveAttribute('d', /L/);
+  for (const point of ['I8', 'H9', 'I9', 'J8', 'J9', 'G8', 'F8']) {
+    await window.getByRole('button', { name: new RegExp(`^${point}，`) }).click();
+    await expect(window.getByTestId('probability-black')).toBeVisible();
+  }
+  await expect(window.getByTestId('chart-point-black')).toHaveCount(9);
   await window.screenshot({
     path: path.join(root, '.local/electron-analysis.png'),
     fullPage: true,
   });
   await window.getByRole('button', { name: '重新开始' }).click();
+  await expect(
+    window.locator('[data-testid="chart-point-black"]:not([data-move="0"])'),
+  ).toHaveCount(0);
   for (const point of ['D8', 'A1', 'E8', 'C1', 'F8', 'E1', 'G8', 'G1', 'H8']) {
     await window.getByRole('button', { name: new RegExp(`^${point}，`) }).click();
   }
   await expect(window.getByRole('heading', { name: '黑棋获胜', exact: true })).toBeVisible();
   await expect(window.locator('.winning-stone')).toHaveCount(5);
   await expect(window.getByTestId('probability-black')).toHaveText('100.0%');
+  await expect(window.getByTestId('chart-point-black').last()).toHaveAttribute('data-move', '9');
   await window.screenshot({
     path: path.join(root, '.local/electron-local-game.png'),
     fullPage: true,

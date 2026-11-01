@@ -37,7 +37,8 @@ test('不填写用户信息即可开始，黑白交替，黑棋横向获胜后�
 test('悔棋逐手恢复回合、手数和最近落子，重下后使用新历史', async ({ page }) => {
   await openGame(page);
   const undoButton = page.getByRole('button', { name: '悔棋', exact: true });
-  const counters = page.locator('.game-counters strong');
+  const moveCount = page.getByTestId('move-count');
+  const lastMove = page.getByTestId('last-move');
   await expect(undoButton).toBeDisabled();
   await cell(page, 'H8').click();
   await cell(page, 'I8').click();
@@ -47,8 +48,8 @@ test('悔棋逐手恢复回合、手数和最近落子，重下后使用新历�
   await expect(cell(page, 'I8')).toHaveAttribute('data-stone', 'empty');
   await expect(cell(page, 'I8')).toBeFocused();
   await expect(page.getByRole('heading', { name: '轮到白棋落子' })).toBeVisible();
-  await expect(counters.nth(0)).toHaveText('1 手');
-  await expect(counters.nth(1)).toHaveText('H8');
+  await expect(moveCount).toHaveText('1 手');
+  await expect(lastMove).toHaveText('H8');
   await expect(cell(page, 'H8').locator('.last-move-mark')).toHaveCount(1);
 
   await cell(page, 'J8').click();
@@ -60,8 +61,8 @@ test('悔棋逐手恢复回合、手数和最近落子，重下后使用新历�
   await expect(page.locator('.game-stone')).toHaveCount(0);
   await expect(page.locator('.last-move-mark')).toHaveCount(0);
   await expect(page.getByRole('heading', { name: '轮到黑棋落子' })).toBeVisible();
-  await expect(counters.nth(0)).toHaveText('0 手');
-  await expect(counters.nth(1)).toHaveText('—');
+  await expect(moveCount).toHaveText('0 手');
+  await expect(lastMove).toHaveText('—');
   await expect(undoButton).toBeDisabled();
 
   await cell(page, 'H8').click();
