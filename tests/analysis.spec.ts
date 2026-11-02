@@ -45,6 +45,12 @@ async function installAnalysisBridge(page: Page) {
     window.desktop = {
       getHealth: async () => ({ status: 'ok', service: 'test', version: 'test' }),
       analysis: {
+        bestMove: async (request) => ({
+          id: request.id,
+          ok: false,
+          code: 'unavailable',
+          message: '此测试仅分析局面',
+        }),
         getStatus: async () => ({ state: 'ready', message: '已就绪' }),
         restart: async () => ({ state: 'ready', message: '已就绪' }),
         cancel: async (id) => {

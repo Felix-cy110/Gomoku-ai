@@ -1,9 +1,8 @@
-import type { StoneColor } from '../shared/game-types';
+import type { StoneColor, Difficulty } from '../shared/game-types';
 import type { AnalysisBridge } from '../shared/analysis';
-export type { StoneColor } from '../shared/game-types';
+export type { StoneColor, Difficulty } from '../shared/game-types';
 
 export type GameMode = 'single' | 'local';
-export type Difficulty = 'easy' | 'normal' | 'hard';
 
 export interface GamePreferences {
   mode: GameMode;

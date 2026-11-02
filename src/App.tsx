@@ -50,7 +50,7 @@ function ModeIllustration({ mode }: { mode: GameMode }) {
 export default function App() {
   const [panel, setPanel] = useState<Panel>(null);
   const [setupMode, setSetupMode] = useState<GameMode | null>(null);
-  const [localGame, setLocalGame] = useState(false);
+  const [activeMode, setActiveMode] = useState<GameMode | null>(null);
   const [preferences, setPreferences] = useState<GamePreferences>(DEFAULT_PREFERENCES);
   const [hasConfigured, setHasConfigured] = useState(false);
   const [sound, setSound] = useState(true);
@@ -81,7 +81,7 @@ export default function App() {
     setToast('');
     if (mode === 'local') {
       setPanel(null);
-      setLocalGame(true);
+      setActiveMode('local');
     } else {
       stoneSound();
       setSetupMode('single');
@@ -89,7 +89,7 @@ export default function App() {
   }
 
   function goHome() {
-    setLocalGame(false);
+    setActiveMode(null);
     setPanel(null);
   }
 
@@ -97,7 +97,8 @@ export default function App() {
     setPreferences(next);
     setHasConfigured(true);
     setSetupMode(null);
-    setToast('单人对局设置已应用，仅在本次打开期间有效');
+    setPanel(null);
+    setActiveMode('single');
   }
 
   const difficulty = DIFFICULTIES.find((item) => item.value === preferences.difficulty)?.label;
@@ -185,7 +186,13 @@ export default function App() {
           <div className="breadcrumb">
             <span>棋室</span>
             <ChevronRight size={13} />
-            <strong>{localGame ? '双人对弈' : '对弈大厅'}</strong>
+            <strong>
+              {activeMode === 'single'
+                ? '人机对弈'
+                : activeMode === 'local'
+                  ? '双人对弈'
+                  : '对弈大厅'}
+            </strong>
           </div>
           <div className="topbar-actions">
             <span className="welcome">好久不见，来下一局。</span>
@@ -206,8 +213,9 @@ export default function App() {
         </header>
 
         <main>
-          {localGame ? (
+          {activeMode ? (
             <LocalGame
+              opponent={activeMode === 'single' ? preferences : undefined}
               onExit={goHome}
               onRules={() => setPanel('rules')}
               onStone={stoneSound}
@@ -300,7 +308,7 @@ export default function App() {
                       {hasConfigured && preferences.mode === 'single' ? (
                         <>
                           <Check size={17} />
-                          已选择单人 · 调整设置
+                          再开一局 · 选择执子
                         </>
                       ) : (
                         <>
@@ -437,7 +445,7 @@ export default function App() {
             <p>弈间采用自由五子棋规则，不设三三、四四等禁手。棋盘下满而无人获胜时，双方和棋。</p>
           </div>
           <button className="primary-button save-button" onClick={() => setPanel(null)}>
-            {localGame ? '明白了，继续对弈' : '明白了，返回大厅'}
+            {activeMode ? '明白了，继续对弈' : '明白了，返回大厅'}
             <ArrowRight size={17} />
           </button>
         </Modal>
@@ -457,7 +465,7 @@ export default function App() {
             <p>
               对局记录功能尚未开放。
               <br />
-              当前双人棋局仅在本次对弈中保留。
+              当前棋局仅在本次对弈中保留。
             </p>
           </div>
           <button className="primary-button save-button" onClick={goHome}>
@@ -496,7 +504,7 @@ export default function App() {
             </span>
             <div>
               <strong>弈间 · GOMOKU CLUB</strong>
-              <p>v0.1.0 · 本地双人对弈</p>
+              <p>v0.1.0 · 人机与本地双人对弈</p>
             </div>
           </div>
           <p className="settings-footnote">

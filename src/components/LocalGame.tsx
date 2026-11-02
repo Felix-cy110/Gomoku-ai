@@ -3,6 +3,9 @@ import { ArrowLeft, ArrowUpRight, BookOpen, RotateCcw, Undo2 } from 'lucide-reac
 import { BOARD_SIZE, coordinate, createGame, playMove, undoMove } from '../game/gomoku';
 import WinningLine from './WinningLine';
 import AnalysisPanel from './AnalysisPanel';
+import { usePositionAnalysis } from '../hooks/usePositionAnalysis';
+import { undoPlayerTurn } from '../game/single-player';
+import { DIFFICULTIES, type GamePreferences } from '../types';
 import '../game.css';
 
 interface Props {
@@ -10,18 +13,29 @@ interface Props {
   onRules: () => void;
   onStone: () => void;
   soundEnabled: boolean;
+  opponent?: GamePreferences;
 }
 
 const STAR_POINTS = [48, 56, 112, 168, 176];
 const CENTER = 112;
 
-export default function LocalGame({ onExit, onRules, onStone, soundEnabled }: Props) {
+export default function LocalGame({ onExit, onRules, onStone, soundEnabled, opponent }: Props) {
   const [game, setGame] = useState(createGame);
   const [analysisSession, setAnalysisSession] = useState(0);
   const [focusIndex, setFocusIndex] = useState(CENTER);
   const boardRef = useRef<HTMLDivElement>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const finished = game.result !== null;
+  const computerTurn = Boolean(opponent && game.turn !== opponent.color && !finished);
+  const analysis = usePositionAnalysis(
+    game,
+    analysisSession,
+    computerTurn ? opponent?.difficulty : undefined,
+  );
+  const blocked = finished || computerTurn || Boolean(opponent && !window.desktop?.analysis);
+  const canUndo = opponent ? undoPlayerTurn(game, opponent.color) !== game : game.moves > 0;
+  const stoneSoundRef = useRef(onStone);
+  stoneSoundRef.current = onStone;
   const winningStart = game.winningLine[0];
   const winningEnd = game.winningLine[game.winningLine.length - 1];
   const status =
@@ -32,12 +46,20 @@ export default function LocalGame({ onExit, onRules, onStone, soundEnabled }: Pr
         : `轮到${game.turn === 'black' ? '黑棋' : '白棋'}落子`;
 
   useEffect(() => {
+    if (!computerTurn || analysis.computerMove === undefined) return;
+    const next = playMove(game, analysis.computerMove);
+    if (next === game) return;
+    setGame((current) => (current === game ? next : current));
+    stoneSoundRef.current();
+  }, [game, computerTurn, analysis.computerMove]);
+
+  useEffect(() => {
     headingRef.current?.focus({ preventScroll: true });
     window.scrollTo(0, 0);
   }, []);
 
   function placeStone(index: number) {
-    if (game.result || game.board[index]) return;
+    if (blocked || game.board[index]) return;
     setGame((current) => playMove(current, index));
     onStone();
   }
@@ -84,8 +106,8 @@ export default function LocalGame({ onExit, onRules, onStone, soundEnabled }: Pr
   }
 
   function undo() {
-    if (game.lastMove === null) return;
-    setGame(undoMove);
+    if (!canUndo || game.lastMove === null) return;
+    setGame((current) => (opponent ? undoPlayerTurn(current, opponent.color) : undoMove(current)));
     focusCell(game.lastMove);
   }
 
@@ -99,13 +121,19 @@ export default function LocalGame({ onExit, onRules, onStone, soundEnabled }: Pr
           </button>
           <span className="eyebrow">A LITTLE FRIENDLY COMPETITION</span>
           <h1 id="game-heading" ref={headingRef} tabIndex={-1}>
-            两个人，一盘好棋。
+            {opponent ? '与 Rapfi，落子过招。' : '两个人，一盘好棋。'}
           </h1>
-          <p>黑白轮流，落子即开始。先连成五子的一方获胜。</p>
+          <p>
+            {opponent
+              ? `你执${opponent.color === 'black' ? '黑先行' : '白后行'}，Rapfi 执${opponent.color === 'black' ? '白' : '黑'}。先连成五子的一方获胜。`
+              : '黑白轮流，落子即开始。先连成五子的一方获胜。'}
+          </p>
         </div>
         <span className="game-mode-tag">
           <span className="status-dot" />
-          本地双人 · 自由五子棋
+          {opponent
+            ? `人机对弈 · ${DIFFICULTIES.find((item) => item.value === opponent.difficulty)?.label} · ${opponent.color === 'black' ? '执黑先行' : '执白后行'}`
+            : '本地双人 · 自由五子棋'}
         </span>
       </div>
 
@@ -152,7 +180,7 @@ export default function LocalGame({ onExit, onRules, onStone, soundEnabled }: Pr
                     data-stone={stone ?? 'empty'}
                     className={`board-cell ${row === 0 ? 'edge-top' : ''} ${row === 14 ? 'edge-bottom' : ''} ${col === 0 ? 'edge-left' : ''} ${col === 14 ? 'edge-right' : ''}`}
                     aria-label={`${coordinate(index)}，${stone ? (stone === 'black' ? '黑棋' : '白棋') : '空位'}${winning ? '，获胜连线' : ''}`}
-                    aria-disabled={Boolean(stone) || finished}
+                    aria-disabled={Boolean(stone) || blocked}
                     tabIndex={index === focusIndex ? 0 : -1}
                     onFocus={() => setFocusIndex(index)}
                     onKeyDown={(event) => navigate(event, index)}
@@ -178,12 +206,19 @@ export default function LocalGame({ onExit, onRules, onStone, soundEnabled }: Pr
             </div>
           </div>
           <p className="board-help" id="board-help">
-            点击交叉点落子<span>方向键移动 · 空格 / Enter 落子</span>
+            {opponent && !window.desktop?.analysis
+              ? '请在桌面客户端与 Rapfi 对弈'
+              : computerTurn
+                ? analysis.canRetry
+                  ? '模型落子暂不可用，请重试分析'
+                  : 'Rapfi 正在思考…'
+                : '点击交叉点落子'}
+            <span>方向键移动 · 空格 / Enter 落子</span>
           </p>
         </div>
 
         <aside className="game-info" aria-label="对局信息">
-          <AnalysisPanel key={analysisSession} game={game} />
+          <AnalysisPanel game={game} analysis={analysis} />
           <div className="game-players">
             {(['black', 'white'] as const).map((color) => (
               <div
@@ -191,7 +226,10 @@ export default function LocalGame({ onExit, onRules, onStone, soundEnabled }: Pr
                 className={`game-player ${!finished && game.turn === color ? 'current-player' : ''}`}
               >
                 <span className={`small-stone stone-${color}`} />
-                <strong>{color === 'black' ? '黑棋' : '白棋'}</strong>
+                <strong>
+                  {color === 'black' ? '黑棋' : '白棋'}
+                  {opponent ? ` · ${opponent.color === color ? '你' : 'Rapfi'}` : ''}
+                </strong>
                 <span>
                   {game.result === color
                     ? '胜方'
@@ -208,8 +246,8 @@ export default function LocalGame({ onExit, onRules, onStone, soundEnabled }: Pr
             <button
               className="undo-button"
               onClick={undo}
-              disabled={game.moves === 0}
-              title="撤回最近一手"
+              disabled={!canUndo}
+              title={opponent ? '撤回到你上一手之前' : '撤回最近一手'}
             >
               <Undo2 size={16} aria-hidden="true" />
               悔棋

@@ -55,8 +55,21 @@ try {
   await window.screenshot({ path: path.join(root, '.local/electron-home.png'), fullPage: true });
   await window.getByRole('button', { name: '选择单人模式' }).click();
   await window.getByText('高手过招', { exact: true }).click();
-  await window.getByRole('button', { name: '确认对局设置' }).click();
+  await window.getByRole('button', { name: '开始人机对弈' }).click();
   await expect(window.getByText(/人机对弈 · 高手过招/)).toBeVisible();
+  await expect(window.getByRole('heading', { name: '与 Rapfi，落子过招。' })).toBeVisible();
+  await expect(window.locator('.game-stone')).toHaveCount(0);
+  await expect(window.getByTestId('probability-black')).toBeVisible();
+  await window.getByRole('button', { name: /^H8，/ }).click();
+  await expect(window.locator('.game-stone.stone-white')).toHaveCount(1, { timeout: 10000 });
+  await expect(window.locator('.game-stone.stone-black')).toHaveCount(1);
+  await expect(window.getByTestId('chart-point-black')).toHaveCount(3);
+  await window.screenshot({
+    path: path.join(root, '.local/electron-single-black.png'),
+    fullPage: true,
+  });
+  await window.getByRole('button', { name: '悔棋', exact: true }).click();
+  await expect(window.locator('.game-stone')).toHaveCount(0);
   await window.getByRole('button', { name: '关闭对局音效' }).click();
   expect(
     await window.evaluate(() => ({ local: localStorage.length, session: sessionStorage.length })),
@@ -66,7 +79,29 @@ try {
   await window.getByRole('button', { name: '选择单人模式' }).click();
   await expect(window.locator('input[name="difficulty"][value="normal"]')).toBeChecked();
   await expect(window.locator('input[name="color"][value="black"]')).toBeChecked();
-  await window.keyboard.press('Escape');
+  await window.getByText('执白 · 后行', { exact: true }).click();
+  await window.getByRole('button', { name: '开始人机对弈' }).click();
+  await expect(window.getByRole('button', { name: /^H8，/ })).toHaveAttribute(
+    'data-stone',
+    'black',
+  );
+  await expect(window.locator('.game-stone')).toHaveCount(1);
+  await expect(window.getByRole('button', { name: '悔棋', exact: true })).toBeDisabled();
+  await expect(window.getByTestId('probability-black')).toBeVisible();
+  await window.getByRole('button', { name: /^I8，/ }).click();
+  await expect(window.locator('.game-stone')).toHaveCount(3, { timeout: 10000 });
+  await expect(window.getByTestId('chart-point-black')).toHaveCount(4);
+  await window.screenshot({
+    path: path.join(root, '.local/electron-single-white.png'),
+    fullPage: true,
+  });
+  await window.getByRole('button', { name: '重新开始' }).click();
+  await expect(window.locator('.game-stone')).toHaveCount(1);
+  await expect(window.getByRole('button', { name: /^H8，/ })).toHaveAttribute(
+    'data-stone',
+    'black',
+  );
+  await window.getByRole('button', { name: '返回首页', exact: true }).click();
   await window.getByRole('button', { name: '开始双人对弈' }).click();
   await expect(window.getByRole('textbox')).toHaveCount(0);
   await expect(window.getByRole('heading', { name: '轮到黑棋落子' })).toBeVisible();
@@ -110,10 +145,10 @@ try {
   // Reuse the profile to verify a complete restart, not just a page reload.
   await window.getByRole('button', { name: '返回首页', exact: true }).click();
   await window.getByRole('button', { name: '关闭对局音效' }).click();
-  await window.getByRole('button', { name: '选择单人模式' }).click();
+  await window.getByRole('button', { name: '再开一局 · 选择执子' }).click();
   await window.getByText('高手过招', { exact: true }).click();
   await window.getByText('执白 · 后行', { exact: true }).click();
-  await window.getByRole('button', { name: '确认对局设置' }).click();
+  await window.getByRole('button', { name: '开始人机对弈' }).click();
   await app.close();
   await waitUntil(() => firstEngineProcesses.every((row) => !isAlive(row.ProcessId)));
   app = await electron.launch({
@@ -145,7 +180,7 @@ try {
   app = undefined;
   await waitUntil(() => restartedEngineProcesses.every((row) => !isAlive(row.ProcessId)));
   console.log(
-    'Electron smoke test passed: local NNUE inference, terminal result, normal and forced process cleanup, Java health, in-memory settings and local game.',
+    'Electron smoke test passed: human vs Rapfi as black/white, local NNUE inference, terminal result, normal and forced process cleanup, Java health, in-memory settings and local game.',
   );
 } finally {
   await app?.close();

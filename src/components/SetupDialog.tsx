@@ -18,11 +18,7 @@ export default function SetupDialog({ preferences, onClose, onConfirm }: Props) 
   }
 
   return (
-    <Modal
-      title="一个人的棋力修行"
-      subtitle="找到适合你的节奏，每一次落子都是进步。"
-      onClose={onClose}
-    >
+    <Modal title="一个人的棋力修行" subtitle="选择你的执子，与本机 Rapfi 过招。" onClose={onClose}>
       <form onSubmit={submit}>
         <div className="setup-mode">
           <Sparkles size={21} />
@@ -89,11 +85,9 @@ export default function SetupDialog({ preferences, onClose, onConfirm }: Props) 
           <span className="status-dot" />
           自由五子棋<span>黑棋先行 · 五子相连获胜 · 无禁手</span>
         </div>
-        <p className="scope-note">
-          设置仅本次有效，刷新或重启后恢复默认。AI 对弈将在后续版本开放。
-        </p>
+        <p className="scope-note">黑棋先行；选择执白时，Rapfi 会先落子。设置仅本次有效。</p>
         <button className="primary-button save-button" type="submit">
-          确认对局设置
+          开始人机对弈
           <ArrowRight size={18} />
         </button>
       </form>

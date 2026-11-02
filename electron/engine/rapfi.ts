@@ -8,9 +8,20 @@ import {
   type AnalysisReply,
   type AnalysisRequest,
   type EngineStatus,
+  type EngineFailure,
+  type MoveRequest,
+  type MoveReply,
 } from '../../shared/analysis.js';
-import { parseProbabilities, positionCommands, validatePosition } from './protocol.js';
+import {
+  parseProbabilities,
+  positionCommands,
+  validatePosition,
+  validateMoveRequest,
+  moveCommands,
+  parseMove,
+} from './protocol.js';
 import { terminalAnalysis } from '../../src/game/analysis.js';
+import type { GameState } from '../../src/game/gomoku.js';
 
 export interface EngineOptions {
   command: string;
@@ -21,13 +32,23 @@ export interface EngineOptions {
   shutdownTimeoutMs: number;
 }
 
-interface PendingAnalysis {
-  request: AnalysisRequest;
-  resolve: (reply: AnalysisReply) => void;
-  cancelled: boolean;
-}
+const TaskKind = { ANALYSIS: 'analysis', MOVE: 'move' } as const;
+type PendingTask = { cancelled: boolean } & (
+  | {
+      kind: typeof TaskKind.ANALYSIS;
+      request: AnalysisRequest;
+      resolve: (reply: AnalysisReply) => void;
+    }
+  | {
+      kind: typeof TaskKind.MOVE;
+      request: MoveRequest;
+      game: GameState;
+      resolve: (reply: MoveReply) => void;
+    }
+);
 
 interface Exchange {
+  waitingForMove: boolean;
   lines: string[];
   bytes: number;
   resolve: (lines: string[]) => void;
@@ -35,7 +56,7 @@ interface Exchange {
   timer: ReturnType<typeof setTimeout>;
 }
 
-const cancelled = (id: string): AnalysisReply => ({
+const cancelled = (id: string): EngineFailure => ({
   id,
   ok: false,
   code: AnalysisError.CANCELLED,
@@ -46,8 +67,8 @@ export class RapfiEngine {
   private child?: ChildProcessWithoutNullStreams;
   private status: EngineStatus = { state: EngineState.STOPPED, message: '分析引擎未启动。' };
   private exchange?: Exchange;
-  private active?: PendingAnalysis;
-  private queued?: PendingAnalysis;
+  private active?: PendingTask;
+  private queued?: PendingTask;
   private starting?: Promise<EngineStatus>;
   private stopping?: Promise<void>;
   private exited?: Promise<void>;
@@ -133,11 +154,7 @@ export class RapfiEngine {
     }
     const { request, game } = validated;
     // 只保留当前与最新待分析局面，快速落子不会堆积任务。
-    if (this.queued) {
-      this.queued.resolve(cancelled(this.queued.request.id));
-      this.queued = undefined;
-    }
-    if (this.active) this.active.cancelled = true;
+    this.cancelAll();
     const terminal = terminalAnalysis(game);
     if (terminal) return Promise.resolve({ id: request.id, ok: true, analysis: terminal });
     if (this.status.state !== EngineState.READY)
@@ -148,13 +165,44 @@ export class RapfiEngine {
         message: this.status.message,
       });
     return new Promise((resolve) => {
-      this.queued = { request, resolve, cancelled: false };
+      this.queued = { kind: TaskKind.ANALYSIS, request, resolve, cancelled: false };
+      void this.drain();
+    });
+  }
+
+  bestMove(input: unknown): Promise<MoveReply> {
+    let validated: ReturnType<typeof validateMoveRequest>;
+    try {
+      validated = validateMoveRequest(input);
+    } catch (error) {
+      return Promise.resolve({
+        id: '',
+        ok: false,
+        code: AnalysisError.INVALID_POSITION,
+        message: (error as Error).message,
+      });
+    }
+    const { request, game } = validated;
+    this.cancelAll();
+    if (this.status.state !== EngineState.READY)
+      return Promise.resolve({
+        id: request.id,
+        ok: false,
+        code: AnalysisError.UNAVAILABLE,
+        message: this.status.message,
+      });
+    return new Promise((resolve) => {
+      this.queued = { kind: TaskKind.MOVE, request, game, resolve, cancelled: false };
       void this.drain();
     });
   }
 
   cancel(id: string): void {
-    if (this.active?.request.id === id) this.active.cancelled = true;
+    if (this.active?.request.id === id) {
+      this.active.cancelled = true;
+      if (this.active.kind === TaskKind.MOVE && this.exchange?.waitingForMove)
+        this.child?.stdin.write('STOP\n');
+    }
     if (this.queued?.request.id === id) {
       this.queued.resolve(cancelled(id));
       this.queued = undefined;
@@ -162,7 +210,7 @@ export class RapfiEngine {
   }
 
   cancelAll(): void {
-    if (this.active) this.active.cancelled = true;
+    if (this.active) this.cancel(this.active.request.id);
     if (this.queued) {
       this.queued.resolve(cancelled(this.queued.request.id));
       this.queued = undefined;
@@ -176,24 +224,39 @@ export class RapfiEngine {
     this.active = pending;
     const started = performance.now();
     try {
-      const lines = await this.send(
-        positionCommands(pending.request.moveHistory),
-        this.options.analysisTimeoutMs,
-      );
-      const probabilities = parseProbabilities(lines);
-      pending.resolve(
-        pending.cancelled
-          ? cancelled(pending.request.id)
-          : {
-              id: pending.request.id,
-              ok: true,
-              analysis: {
-                ...probabilities,
-                source: AnalysisSource.MODEL,
-                elapsedMs: Math.round(performance.now() - started),
+      if (pending.kind === TaskKind.MOVE) {
+        const lines = await this.send(
+          moveCommands(pending.request),
+          this.options.analysisTimeoutMs + 2000,
+          true,
+        );
+        // Rapfi 搜索时会忽略 ABOUT，必须等坐标输出后再读取协议结束屏障。
+        await this.send('ABOUT\n', this.options.analysisTimeoutMs);
+        pending.resolve(
+          pending.cancelled
+            ? cancelled(pending.request.id)
+            : { id: pending.request.id, ok: true, move: parseMove(lines, pending.game) },
+        );
+      } else {
+        const lines = await this.send(
+          positionCommands(pending.request.moveHistory),
+          this.options.analysisTimeoutMs,
+        );
+        const probabilities = parseProbabilities(lines);
+        pending.resolve(
+          pending.cancelled
+            ? cancelled(pending.request.id)
+            : {
+                id: pending.request.id,
+                ok: true,
+                analysis: {
+                  ...probabilities,
+                  source: AnalysisSource.MODEL,
+                  elapsedMs: Math.round(performance.now() - started),
+                },
               },
-            },
-      );
+        );
+      }
     } catch (error) {
       if (this.status.state !== EngineState.STOPPING && this.status.state !== EngineState.STOPPED)
         this.fail(error instanceof Error ? error : new Error(String(error)));
@@ -213,14 +276,14 @@ export class RapfiEngine {
     }
   }
 
-  private send(commands: string, timeoutMs: number): Promise<string[]> {
+  private send(commands: string, timeoutMs: number, waitingForMove = false): Promise<string[]> {
     return new Promise((resolve, reject) => {
       if (this.exchange || !this.child || this.child.exitCode !== null || this.child.killed) {
         reject(new Error('引擎当前不可用。'));
         return;
       }
       const timer = setTimeout(() => this.fail(new Error('本地引擎响应超时，请重试。')), timeoutMs);
-      this.exchange = { resolve, reject, timer, lines: [], bytes: 0 };
+      this.exchange = { resolve, reject, timer, lines: [], bytes: 0, waitingForMove };
       this.child.stdin.write(commands);
     });
   }
@@ -238,7 +301,11 @@ export class RapfiEngine {
       return;
     }
     // ABOUT 是串行协议的结束屏障，读完当前响应后才可发送下一局面。
-    if (line.startsWith('name="Rapfi"')) {
+    if (exchange.waitingForMove && /^\d+,\d+$/.test(line)) {
+      clearTimeout(exchange.timer);
+      this.exchange = undefined;
+      exchange.resolve([...exchange.lines, line]);
+    } else if (!exchange.waitingForMove && line.startsWith('name="Rapfi"')) {
       clearTimeout(exchange.timer);
       this.exchange = undefined;
       exchange.resolve(exchange.lines);

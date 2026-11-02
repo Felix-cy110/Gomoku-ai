@@ -1,8 +1,38 @@
 import { createInterface } from 'node:readline';
 const mode = process.argv[2];
 let count = 0;
+let readingBoard = false;
+let searchBoard = false;
+let occupied = [];
+let searchTimer;
+function replyMove() {
+  clearTimeout(searchTimer);
+  searchTimer = undefined;
+  const move =
+    mode === 'invalid-move'
+      ? 225
+      : [112, 113, 114, 115, 116, 117].find((index) => !occupied.includes(index));
+  console.log(`${move % 15},${Math.floor(move / 15)}`);
+}
 const keepAlive = setInterval(() => {}, 1000);
 createInterface({ input: process.stdin }).on('line', (line) => {
+  if (line === 'BOARD' || line === 'YXBOARD') {
+    readingBoard = true;
+    searchBoard = line === 'BOARD';
+    occupied = [];
+    return;
+  }
+  if (readingBoard) {
+    if (line === 'DONE') {
+      readingBoard = false;
+      if (searchBoard && mode !== 'search-hang') searchTimer = setTimeout(replyMove, 180);
+    } else {
+      const [x, y] = line.split(',').map(Number);
+      occupied.push(y * 15 + x);
+    }
+    return;
+  }
+  if (line === 'STOP' && searchTimer) replyMove();
   if (line === 'END' && mode !== 'ignore-end') {
     clearInterval(keepAlive);
     process.exit(0);
