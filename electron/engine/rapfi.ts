@@ -23,9 +23,14 @@ import {
 import { terminalAnalysis } from '../../src/game/analysis.js';
 import type { GameState } from '../../src/game/gomoku.js';
 
-export interface EngineOptions {
+export interface EngineLaunch {
   command: string;
   args: string[];
+}
+
+export interface EngineOptions {
+  /** 缺省表示当前平台没有可用的 Rapfi 引擎，启动时直接报告不可用，不创建子进程。 */
+  launch?: EngineLaunch;
   cwd: string;
   startupTimeoutMs: number;
   analysisTimeoutMs: number;
@@ -55,6 +60,9 @@ interface Exchange {
   reject: (error: Error) => void;
   timer: ReturnType<typeof setTimeout>;
 }
+
+const UNSUPPORTED_PLATFORM_MESSAGE =
+  '当前系统暂不支持本地分析引擎（支持 Windows x64 与 Apple Silicon Mac），双人对弈不受影响。';
 
 const cancelled = (id: string): EngineFailure => ({
   id,
@@ -94,10 +102,15 @@ export class RapfiEngine {
   private async initialize(): Promise<EngineStatus> {
     await (this.stopping ?? this.shutdown());
     if (!this.wantedRunning) return this.getStatus();
+    const launch = this.options.launch;
+    if (!launch) {
+      this.status = { state: EngineState.ERROR, message: UNSUPPORTED_PLATFORM_MESSAGE };
+      return this.getStatus();
+    }
     this.status = { state: EngineState.STARTING, message: '正在初始化本地分析引擎…' };
     this.stderr = '';
     try {
-      const child = spawn(this.options.command, this.options.args, {
+      const child = spawn(launch.command, launch.args, {
         cwd: this.options.cwd,
         shell: false,
         windowsHide: true,

@@ -3,6 +3,7 @@ import { access, mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
+  ENGINE_PROCESS_COUNT,
   backendProcesses,
   engineProcesses,
   isAlive,
@@ -40,7 +41,7 @@ try {
     .toBe('ready');
   const firstMainPid = await app.evaluate(() => process.pid);
   const firstEngineProcesses = await engineProcesses(firstMainPid);
-  expect(firstEngineProcesses).toHaveLength(2);
+  expect(firstEngineProcesses).toHaveLength(ENGINE_PROCESS_COUNT);
   const invalidAnalysis = await window.evaluate(() =>
     window.desktop.analysis.analyze({ id: 'invalid', moveHistory: [0, 0] }),
   );
@@ -166,7 +167,7 @@ try {
     .toBe('ready');
   const restartedMainPid = await app.evaluate(() => process.pid);
   const restartedEngineProcesses = await engineProcesses(restartedMainPid);
-  expect(restartedEngineProcesses).toHaveLength(2);
+  expect(restartedEngineProcesses).toHaveLength(ENGINE_PROCESS_COUNT);
   await expect(restartedWindow.getByRole('button', { name: '关闭对局音效' })).toBeVisible();
   await restartedWindow.getByRole('button', { name: '选择单人模式' }).click();
   await expect(restartedWindow.locator('input[name="difficulty"][value="normal"]')).toBeChecked();
@@ -174,7 +175,7 @@ try {
   await expect(access(path.join(profile, 'lobby/preferences.json'))).rejects.toMatchObject({
     code: 'ENOENT',
   });
-  // 只强制结束本次测试创建的 Electron 主进程，验证 Job 守护清理。
+  // 只强制结束本次测试创建的 Electron 主进程，验证 Windows Job 守护或 macOS 管道关闭后的清理。
   forcedExitBackends = await backendProcesses(restartedMainPid);
   process.kill(restartedMainPid);
   app = undefined;

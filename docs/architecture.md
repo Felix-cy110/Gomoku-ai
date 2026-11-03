@@ -22,7 +22,7 @@ src/game/        单人 / 双人棋局、悔棋与胜负判断
 electron/        Electron 主进程和受限 preload 桥接
 electron/engine/ Rapfi 生命周期、协议与配置
 shared/          前端与主进程共用的类型和业务枚举
-native/windows/  Windows Job Object 守护程序源码
+native/windows/  Windows Job Object 守护程序源码（macOS 无需守护程序）
 config/          随引擎复制的版本匹配配置
 resources/rapfi/ 本地引擎和权重（生成目录，Git 忽略）
 backend/         Spring Boot 服务、配置与集成测试

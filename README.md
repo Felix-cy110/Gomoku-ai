@@ -10,7 +10,7 @@
 
 [快速开始](#快速开始) · [功能预览](#功能预览) · [开发文档](docs/development.md) · [参与贡献](CONTRIBUTING.md)
 
-<img src="docs/assets/readme/badges.svg" alt="Windows x64 · 本机 Rapfi · CPU 推理 · MIT 项目许可" width="520" />
+<img src="docs/assets/readme/badges.svg" alt="Windows · macOS · 本机 Rapfi · CPU 推理 · MIT 项目许可" width="520" />
 
 </div>
 
@@ -68,17 +68,17 @@
 
 ## 快速开始
 
-当前提供**从源码运行的 Windows x64 桌面版本**，尚未提供安装包。
+当前提供**从源码运行的桌面版本**，支持 Windows x64 与 Apple Silicon Mac，尚未提供安装包。macOS 支持尚未在真机上完成验证，遇到问题欢迎反馈。
 
 ### 环境要求
 
-| 环境         | 要求                                                                                   |
-| ------------ | -------------------------------------------------------------------------------------- |
-| 系统         | Windows x64，CPU 支持 SSE4.1；无需独立显卡、CUDA 或 Python                             |
-| Node.js      | 22.12+，或 24+（项目本地使用 Node 24）                                                 |
-| Java         | JDK 17+，确保 `java` 与 `javac` 可用                                                   |
-| Maven        | 3.9+，确保 `mvn` 可用                                                                  |
-| 引擎准备工具 | Windows 自带的 PowerShell、`tar.exe`，以及 .NET Framework 4.x 的 Framework64 `csc.exe` |
+| 环境         | 要求                                                                                                                                 |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
+| 系统         | Windows x64（CPU 支持 SSE4.1），或 Apple Silicon Mac（macOS 14+）；无需独立显卡、CUDA 或 Python                                      |
+| Node.js      | 22.12+，或 24+（项目本地使用 Node 24）                                                                                               |
+| Java         | JDK 17+，确保 `java` 与 `javac` 可用                                                                                                 |
+| Maven        | 3.9+，确保 `mvn` 可用                                                                                                                |
+| 引擎准备工具 | Windows：系统自带的 PowerShell、`tar.exe` 与 .NET Framework 4.x 的 Framework64 `csc.exe`；macOS：系统自带的 `curl`、`tar` 与 `xattr` |
 
 ```powershell
 git clone https://github.com/Felix-cy110/Gomoku-ai.git
@@ -117,7 +117,7 @@ npm start
 
 - **规则**：15 × 15 自由五子棋，黑棋先行，不设禁手，连续五子及以上获胜；满盘无人获胜则和棋。
 - **悔棋**：双人模式每次撤回一手；单人模式撤回到玩家上一手之前，执白时保留模型的开局棋子。终局后也可悔棋继续。
-- **本地运行**：不需要登录，不使用云端模型服务。浏览器可双人对弈，本机 AI 功能需要 Windows 桌面客户端。
+- **本地运行**：不需要登录，不使用云端模型服务。浏览器可双人对弈，本机 AI 功能需要 Windows x64 或 Apple Silicon Mac 上的桌面客户端。
 - **当前范围**：尚未实现对局记录和棋谱保存，也不持久化用户设置。刷新、返回首页或关闭应用会结束本局；刷新或重启后恢复普通难度、执黑和音效开启。
 
 ## 面向开发者

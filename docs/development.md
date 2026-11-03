@@ -7,7 +7,10 @@
 - Node.js 22.12+，或 24+（本地使用 Node 24）。
 - JDK 17+，`java` 和 `javac` 可用。
 - Maven 3.9+，`mvn` 可用。
-- 本地分析当前支持 Windows x64，CPU 需要 SSE4.1；使用系统 .NET Framework 4.x 运行守护程序。构建准备需要 Windows 自带的 `tar.exe`、PowerShell 和 Framework64 下的 `csc.exe`。无需 Python、CUDA 或显卡。
+- 本地分析支持 Windows x64 与 Apple Silicon Mac，无需 Python、CUDA 或显卡。
+  - Windows：CPU 需要 SSE4.1；使用系统 .NET Framework 4.x 运行守护程序。构建准备需要系统自带的 `tar.exe`、PowerShell 和 Framework64 下的 `csc.exe`。
+  - macOS：需要 macOS 14 或更新版本；构建准备使用系统自带的 `curl`、`tar` 和 `xattr`，不需要安装 Xcode。Intel Mac 没有官方引擎，只能双人对弈。
+- 以下命令在 Windows PowerShell 与 macOS 终端中写法相同。
 
 ## 启动
 
