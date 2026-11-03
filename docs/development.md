@@ -39,7 +39,7 @@ mvn -f backend/pom.xml spring-boot:run
 
 也可以进入 `backend` 目录执行 `mvn spring-boot:run`。默认监听 `127.0.0.1:18087`，健康检查地址为 `http://127.0.0.1:18087/api/health`。单独运行后端不会打开桌面窗口；`npm run dev` 和 `npm run dev:web` 会自行启动后端，不要同时在相同端口另开后端进程。
 
-后端配置位于 `backend/src/main/resources/application.properties`。打包后的 JAR 支持 Spring Boot 标准启动参数，例如：
+后端配置位于 `backend/src/main/resources/application.yml`。打包后的 JAR 支持 Spring Boot 标准启动参数，例如：
 
 ```powershell
 npm run backend:build

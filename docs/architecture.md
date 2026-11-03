@@ -71,7 +71,7 @@ backend/src/main/java/dev/yijian/gomoku/
 - `mapper` 当前仅保留包说明，没有 Mapper 实现或数据库依赖。未来明确需要持久化时，由 Service 实现调用 Mapper，Controller 不直接访问数据库。
 - 测试放在 `backend/src/test/java` 对应包下；接口行为与配置绑定测试放在 `controller`，启动入口测试与启动类同包。
 
-健康检查使用的服务标识和版本集中配置在 `application.properties` 的 `gomoku.service.name`、`gomoku.service.version`，也可通过标准 Spring Boot 命令行参数覆盖；默认接口响应与重构前一致。
+健康检查使用的服务标识和版本集中配置在 `application.yml` 的 `gomoku.service.name`、`gomoku.service.version`，也可通过标准 Spring Boot 命令行参数覆盖；默认接口响应与重构前一致。
 
 ## API 与数据
 
