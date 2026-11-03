@@ -11,15 +11,50 @@ import {
   validateMoveRequest,
   parseMove,
 } from '../dist-electron/electron/engine/protocol.js';
-import { engineProcesses, isAlive, waitUntil } from './processes.mjs';
+import { ENGINE_PROCESS_COUNT, engineProcesses, isAlive, waitUntil } from './processes.mjs';
 
 const fakeOptions = (mode) => ({
-  command: process.execPath,
-  args: [path.resolve('tests-engine/fixtures/fake-engine.mjs'), mode],
+  launch: {
+    command: process.execPath,
+    args: [path.resolve('tests-engine/fixtures/fake-engine.mjs'), mode],
+  },
   cwd: process.cwd(),
   startupTimeoutMs: 2000,
   analysisTimeoutMs: 2000,
   shutdownTimeoutMs: 100,
+});
+
+test('按平台选择 Rapfi 启动方式：Windows 经守护进程，Apple Silicon 直接启动', () => {
+  const resources = path.resolve('resources');
+  const directory = path.join(resources, 'rapfi');
+  const windows = engineOptions(resources, 'win32', 'x64');
+  assert.equal(windows.launch.command, path.join(directory, 'rapfi-host.exe'));
+  assert.deepEqual(windows.launch.args, [
+    String(process.pid),
+    path.join(directory, 'pbrain-rapfi-windows-sse.exe'),
+  ]);
+  const mac = engineOptions(resources, 'darwin', 'arm64');
+  assert.equal(mac.launch.command, path.join(directory, 'pbrain-rapfi-macos-apple-silicon'));
+  assert.deepEqual(mac.launch.args, []);
+  assert.equal(mac.cwd, directory);
+  for (const [platform, arch] of [
+    ['darwin', 'x64'],
+    ['win32', 'arm64'],
+    ['linux', 'x64'],
+  ])
+    assert.equal(engineOptions(resources, platform, arch).launch, undefined);
+});
+
+test('不支持的平台直接报告不可用，不创建子进程，分析请求明确失败', async () => {
+  const engine = new RapfiEngine({ ...fakeOptions('normal'), launch: undefined });
+  const status = await engine.start();
+  assert.equal(status.state, 'error');
+  assert.match(status.message, /Apple Silicon/);
+  const reply = await engine.analyze({ id: 'unsupported', moveHistory: [112] });
+  assert.equal(reply.code, 'unavailable');
+  assert.equal((await engine.start()).state, 'error');
+  await engine.stop();
+  assert.equal(engine.getStatus().state, 'stopped');
 });
 
 test('拒绝越界、重复、错误类型和终局后继续落子的序列', () => {
@@ -137,7 +172,7 @@ test('真实 Rapfi：权重预热、固定黑方视角、悔棋复现、重启�
   t.after(() => engine.stop());
   assert.equal((await engine.start()).state, 'ready');
   const owned = await engineProcesses(process.pid);
-  assert.equal(owned.length, 2);
+  assert.equal(owned.length, ENGINE_PROCESS_COUNT);
   const first = await engine.analyze({ id: 'one', moveHistory: [112] });
   assert.equal(first.ok, true);
   assert.ok(Math.abs(first.analysis.blackWin - 0.7204) < 0.002);
@@ -180,7 +215,7 @@ test('真实 Rapfi：权重预热、固定黑方视角、悔棋复现、重启�
   assert.equal((await engine.analyze({ id: 'after-search', moveHistory: [112] })).ok, true);
 });
 
-test('强制结束父进程后，Windows 守护进程和 Rapfi 都自动退出', async (t) => {
+test('强制结束父进程后，Rapfi（及 Windows 守护进程）自动退出', async (t) => {
   const owner = spawn(process.execPath, ['tests-engine/fixtures/engine-owner.mjs'], {
     windowsHide: true,
     stdio: ['ignore', 'pipe', 'pipe'],
@@ -192,7 +227,7 @@ test('强制结束父进程后，Windows 守护进程和 Rapfi 都自动退出',
   });
   await waitUntil(() => output.includes('READY'), 10_000);
   const owned = await engineProcesses(owner.pid);
-  assert.equal(owned.length, 2);
+  assert.equal(owned.length, ENGINE_PROCESS_COUNT);
   const closed = once(owner, 'close');
   owner.kill();
   await closed;
