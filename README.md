@@ -145,8 +145,6 @@ React 负责界面，TypeScript 处理棋局规则，Electron 管理本机引擎
 
 本项目采用 [MIT License](LICENSE)。Rapfi 引擎、模型、字体等第三方资源遵循各自的许可证，详情见 [第三方说明](THIRD_PARTY_NOTICES.md)。
 
-README 的图文展示方式参考 [Tutti](https://github.com/tutti-os/tutti)，使用弈间自己的视觉设计与客户端截图。
-
 ---
 
 <p align="center">一局一会，乐在其中。<br /><sub>MADE FOR THE LOVE OF THE GAME</sub></p>
