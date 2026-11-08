@@ -124,7 +124,9 @@ npm start
 
 **Electron · React · TypeScript · Spring Boot 3.5.11 · Java 17 · Rapfi NNUE**
 
-React 负责界面，TypeScript 处理棋局规则，Electron 管理本机引擎，Spring Boot 提供健康检查。渲染进程通过受限 IPC 调用分析能力，不直接访问 Node.js。
+前端使用 React + TypeScript、Tailwind CSS、Rsbuild 和 i18next。顶部可切换简体中文 / English，棋局和分析进度保持不变；语言偏好仅本次有效。
+
+TypeScript 处理棋局规则，Electron 管理本机引擎，Spring Boot 提供健康检查。渲染进程通过受限 IPC 调用分析能力，不直接访问 Node.js。
 
 | 文档                                   | 内容                                              |
 | -------------------------------------- | ------------------------------------------------- |

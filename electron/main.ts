@@ -85,7 +85,7 @@ async function startBackend() {
 }
 
 function createWindow() {
-  const developmentUrl = process.env.VITE_DEV_SERVER_URL;
+  const developmentUrl = process.env.GOMOKU_DEV_SERVER_URL;
   const productionUrl = pathToFileURL(path.join(projectDirectory, 'dist/index.html')).href;
   const allowedDocument = developmentUrl ? new URL(developmentUrl).href : productionUrl;
   mainWindow = new BrowserWindow({
@@ -134,9 +134,9 @@ else {
         callback(false),
       );
       ephemeralSession.webRequest.onHeadersReceived((details, callback) => {
-        const dev = Boolean(process.env.VITE_DEV_SERVER_URL);
+        const dev = Boolean(process.env.GOMOKU_DEV_SERVER_URL);
         const socketOrigin = dev
-          ? new URL(process.env.VITE_DEV_SERVER_URL!).origin.replace('http:', 'ws:')
+          ? new URL(process.env.GOMOKU_DEV_SERVER_URL!).origin.replace('http:', 'ws:')
           : '';
         const csp = `default-src 'self'; script-src 'self'${dev ? " 'unsafe-inline'" : ''}; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'${dev ? ` ${socketOrigin}` : ''}; object-src 'none'; base-uri 'none'`;
         callback({

@@ -18,6 +18,10 @@ flowchart LR
 
 ```text
 src/             React 页面、音效、样式与模式设置
+src/components/  展示组件、对话框、语言选择与页面元数据
+src/hooks/       棋局分析请求与生命周期
+src/i18n/        i18next 初始化、语言枚举与中英文资源
+src/types/       渲染侧业务状态与错误码
 src/game/        单人 / 双人棋局、悔棋与胜负判断
 electron/        Electron 主进程和受限 preload 桥接
 electron/engine/ Rapfi 生命周期、协议与配置
@@ -31,7 +35,16 @@ tests/           Playwright 端到端测试
 tests-engine/    协议、真实模型与进程生命周期测试
 public/          本地图标
 docs/            开发文档、架构说明与 README 展示素材
+rsbuild.config.ts React / Tailwind 构建、开发服务与代理
 ```
+
+### 前端构建与国际化
+
+React + TypeScript 负责界面，Rsbuild 使用 React 与 Tailwind CSS 插件构建。通用布局使用 Tailwind 工具类，设计变量集中在 `src/tailwind.css` 的 `@theme`；棋盘木纹、棋子与获胜连线动画保留专用 CSS。当前沿用原有基础重置，仅引入 Tailwind 的主题和工具层，避免 Preflight 改变原生弹窗与棋盘按钮的行为。
+
+i18next / react-i18next 读取随应用打包的简体中文、英文资源，资源键具有 TypeScript 类型检查。语言选择与页面元数据组件独立维护展示语言；棋局规则、音效和分析请求不依赖语言状态。引擎返回稳定的状态 / 错误码，展示层翻译相应提示。切换语言不会清空棋子、分析历史或重新发起搜索。
+
+开发时 Rsbuild 监听回环地址并代理 `/api`，Electron 通过 `GOMOKU_DEV_SERVER_URL` 加载开发页面。生产构建使用相对资源路径，Electron 直接加载 `dist/index.html`；字体与语言资源无需联网读取。
 
 后端使用 Spring Boot 3.5.11、Spring MVC 和内嵌 Tomcat，Java 版本为 17；Spring Boot 与 Java 版本对齐参考项目 CampusSys。入口为 `GomokuApplication`，通过 Spring Boot Maven 插件打包为 `backend/target/gomoku-backend.jar`。当前仅提供健康检查，不读写用户数据，也不需要数据库或 Redis。双人棋局由 TypeScript 本地处理，本地 AI 分析由 Electron 管理 Rapfi 子进程完成。React 页面未直接暴露 Node.js 能力，Electron 启用上下文隔离、沙箱与不写磁盘缓存的内存会话。
 
@@ -81,7 +94,7 @@ backend/src/main/java/dev/yijian/gomoku/
 
 原 `/api/preferences` 读写接口及 Java `--data-dir` 参数已移除。模式与音效只使用 React 内存状态，应用不使用 `localStorage`、`sessionStorage`、数据库或 JSON 文件持久化用户数据。
 
-默认设置为普通难度（棋逢对手）、执黑、音效开启。刷新页面或重启应用后恢复默认，棋局与历史记录也不会恢复。旧版本已生成的偏好文件及浏览器数据不再读取或更新，不自动删除。
+默认设置为简体中文、普通难度（棋逢对手）、执黑、音效开启。刷新页面或重启应用后恢复默认，棋局与历史记录也不会恢复。旧版本已生成的偏好文件及浏览器数据不再读取或更新，不自动删除。
 
 构建产物、测试截图及 Electron 自身的运行文件不属于用户设置或棋局数据；测试输出仍写入已被 Git 忽略的目录。
 

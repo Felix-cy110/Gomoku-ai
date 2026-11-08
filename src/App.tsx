@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useEffect, useState } from 'react';
 import {
   ArrowDownLeft,
@@ -5,7 +6,6 @@ import {
   BookOpen,
   Check,
   ChevronRight,
-  CircleHelp,
   Clock3,
   Coffee,
   Grid2X2,
@@ -18,14 +18,13 @@ import {
   VolumeX,
   X,
 } from 'lucide-react';
+import LocaleSelect from './components/LocaleSelect';
 import BoardArt from './components/BoardArt';
-import Modal from './components/Modal';
+import AppPanels from './components/AppPanels';
 import SetupDialog from './components/SetupDialog';
 import LocalGame from './components/LocalGame';
 import { playStoneSound } from './audio/stoneSound';
-import { DEFAULT_PREFERENCES, DIFFICULTIES, type GameMode, type GamePreferences } from './types';
-
-type Panel = 'rules' | 'history' | 'settings' | null;
+import { DEFAULT_PREFERENCES, type GameMode, type GamePreferences, Panel } from './types';
 
 function ModeIllustration({ mode }: { mode: GameMode }) {
   return (
@@ -48,13 +47,14 @@ function ModeIllustration({ mode }: { mode: GameMode }) {
 }
 
 export default function App() {
-  const [panel, setPanel] = useState<Panel>(null);
+  const { t } = useTranslation();
+  const [panel, setPanel] = useState<Panel | null>(null);
   const [setupMode, setSetupMode] = useState<GameMode | null>(null);
   const [activeMode, setActiveMode] = useState<GameMode | null>(null);
   const [preferences, setPreferences] = useState<GamePreferences>(DEFAULT_PREFERENCES);
   const [hasConfigured, setHasConfigured] = useState(false);
   const [sound, setSound] = useState(true);
-  const [toast, setToast] = useState('');
+  const [toast, setToast] = useState<'common.soundEnabled' | 'common.soundDisabled' | ''>('');
 
   useEffect(() => {
     if (!toast) return;
@@ -68,7 +68,7 @@ export default function App() {
     if (next) {
       void playStoneSound();
     }
-    setToast(next ? '对局音效已开启' : '对局音效已关闭');
+    setToast(next ? 'common.soundEnabled' : 'common.soundDisabled');
   }
 
   function stoneSound() {
@@ -101,7 +101,7 @@ export default function App() {
     setActiveMode('single');
   }
 
-  const difficulty = DIFFICULTIES.find((item) => item.value === preferences.difficulty)?.label;
+  const difficulty = t(`difficulty.${preferences.difficulty}.label`);
 
   return (
     <div className="app-shell">
@@ -109,7 +109,7 @@ export default function App() {
         <a
           className="brand"
           href="#"
-          aria-label="弈间首页"
+          aria-label={t('common.home')}
           onClick={(event) => {
             event.preventDefault();
             goHome();
@@ -122,34 +122,38 @@ export default function App() {
             <i />
           </span>
           <span className="brand-type">
-            <strong>弈间</strong>
+            <strong>{t('common.brand')}</strong>
             <span>GOMOKU CLUB</span>
           </span>
         </a>
         <div className="sidebar-content">
-          <div className="nav-label">一 方 棋 室</div>
-          <nav className="main-nav" aria-label="主导航">
+          <div className="nav-label">{t('nav.label')}</div>
+          <nav className="main-nav" aria-label={t('nav.main')}>
             <button
-              className={`nav-item ${panel !== 'history' ? 'active' : ''}`}
-              aria-label="对弈大厅"
+              className={`nav-item ${panel !== Panel.HISTORY ? 'active' : ''}`}
+              aria-label={t('nav.lobby')}
               onClick={goHome}
-              aria-current={panel !== 'history' ? 'page' : undefined}
+              aria-current={panel !== Panel.HISTORY ? 'page' : undefined}
             >
               <Grid2X2 size={19} />
-              <span>对弈大厅</span>
+              <span>{t('nav.lobby')}</span>
               <span className="nav-dot" />
             </button>
             <button
-              className={`nav-item ${panel === 'history' ? 'active' : ''}`}
-              aria-label="对局记录"
-              onClick={() => setPanel('history')}
+              className={`nav-item ${panel === Panel.HISTORY ? 'active' : ''}`}
+              aria-label={t('nav.history')}
+              onClick={() => setPanel(Panel.HISTORY)}
             >
               <Clock3 size={19} />
-              <span>对局记录</span>
+              <span>{t('nav.history')}</span>
             </button>
-            <button className="nav-item" aria-label="玩法指南" onClick={() => setPanel('rules')}>
+            <button
+              className="nav-item"
+              aria-label={t('nav.rules')}
+              onClick={() => setPanel(Panel.RULES)}
+            >
               <BookOpen size={19} />
-              <span>玩法指南</span>
+              <span>{t('nav.rules')}</span>
               <ArrowDownLeft className="nav-arrow" size={15} />
             </button>
           </nav>
@@ -162,20 +166,20 @@ export default function App() {
               <i />
             </div>
             <p>
-              棋不止于胜负，
+              {t('nav.note1')}
               <br />
-              也在于落子时的从容。
+              {t('nav.note2')}
             </p>
             <span>TAKE YOUR TIME.</span>
           </div>
           <div className="sidebar-bottom">
-            <button className="nav-item" onClick={() => setPanel('settings')}>
+            <button className="nav-item" onClick={() => setPanel(Panel.SETTINGS)}>
               <Settings2 size={18} />
-              <span>偏好设置</span>
+              <span>{t('nav.settings')}</span>
             </button>
             <div className="version">
               <span className="status-dot" />
-              弈间 <span>v0.1.0</span>
+              {t('common.brand')} <span>v0.1.0</span>
             </div>
           </div>
         </div>
@@ -184,30 +188,32 @@ export default function App() {
       <div className="workspace">
         <header className="topbar">
           <div className="breadcrumb">
-            <span>棋室</span>
+            <span>{t('nav.room')}</span>
             <ChevronRight size={13} />
             <strong>
               {activeMode === 'single'
-                ? '人机对弈'
+                ? t('nav.single')
                 : activeMode === 'local'
-                  ? '双人对弈'
-                  : '对弈大厅'}
+                  ? t('nav.local')
+                  : t('nav.lobby')}
             </strong>
           </div>
-          <div className="topbar-actions">
-            <span className="welcome">好久不见，来下一局。</span>
+          <div className="topbar-actions flex items-center gap-[19px]">
+            <LocaleSelect />
+            <span className="welcome">{t('nav.welcome')}</span>
             <button
               className={`icon-button sound-button ${sound ? '' : 'muted'}`}
               onClick={toggleSound}
-              aria-label={sound ? '关闭对局音效' : '开启对局音效'}
+              aria-label={sound ? t('common.soundOff') : t('common.soundOn')}
               aria-pressed={sound}
-              title={sound ? '关闭对局音效' : '开启对局音效'}
+              title={sound ? t('common.soundOff') : t('common.soundOn')}
             >
               {sound ? <Volume2 size={19} /> : <VolumeX size={19} />}
             </button>
             <span className="topbar-divider" />
-            <div className="avatar" aria-label="本地棋手">
-              弈<span />
+            <div className="avatar" aria-label={t('nav.player')}>
+              {t('nav.avatar')}
+              <span />
             </div>
           </div>
         </header>
@@ -217,7 +223,7 @@ export default function App() {
             <LocalGame
               opponent={activeMode === 'single' ? preferences : undefined}
               onExit={goHome}
-              onRules={() => setPanel('rules')}
+              onRules={() => setPanel(Panel.RULES)}
               onStone={stoneSound}
               soundEnabled={sound}
             />
@@ -230,75 +236,76 @@ export default function App() {
                     HELLO, GOMOKU.
                   </div>
                   <h1 id="hero-heading">
-                    方寸之间，
+                    {t('home.headline1')}
                     <br />
-                    <span>落子有趣。</span>
+                    <span>{t('home.headline2')}</span>
                     <span className="title-period" />
                   </h1>
                   <p className="hero-description">
-                    与 AI 切磋，或邀好友同坐。
+                    {t('home.description1')}
                     <br />
-                    从一颗棋子开始，享受纯粹的思考时光。
+                    {t('home.description2')}
                   </p>
-                  <div className="hero-tags">
+                  <div className="hero-tags flex items-center gap-[15px]">
                     <span>
                       <Grid2X2 size={14} />
-                      经典五子棋
+                      {t('home.classic')}
                     </span>
                     <i />
                     <span>
                       <Leaf size={14} />
-                      简单，却不止简单
+                      {t('home.simple')}
                     </span>
                   </div>
                 </div>
                 <BoardArt />
-                <span className="hero-vertical">黑 白 之 间 · 自 有 天 地</span>
+                <span className="hero-vertical">{t('home.vertical')}</span>
               </section>
 
               <section className="mode-section" aria-labelledby="mode-heading">
-                <div className="section-heading">
+                <div className="section-heading flex items-end justify-between">
                   <div>
                     <span className="eyebrow">LET’S PLAY</span>
                     <h2 id="mode-heading">
-                      今天，和谁过招<span>？</span>
+                      {t('home.choose')}
+                      <span>{t('home.questionMark')}</span>
                     </h2>
                   </div>
-                  <p>选一种方式，开启你的棋间时光</p>
+                  <p>{t('home.chooseHint')}</p>
                 </div>
-                <div className="mode-grid">
+                <div className="mode-grid grid grid-cols-2 gap-[22px]">
                   <article
                     className={`mode-card single-card ${hasConfigured && preferences.mode === 'single' ? 'chosen' : ''}`}
                   >
-                    <div className="card-topline">
+                    <div className="card-topline flex items-center justify-between">
                       <span className="mode-label">
                         <span className="status-dot" />
-                        单人模式
+                        {t('home.singleMode')}
                       </span>
                       <span className="card-index">01</span>
                     </div>
                     <div className="mode-card-body">
                       <div className="mode-copy">
                         <h3>
-                          人机对弈
+                          {t('nav.single')}
                           <ArrowRight className="heading-arrow" size={20} />
                         </h3>
                         <p>
-                          与 AI 棋逢对手，
+                          {t('home.singleDescription1')}
                           <br />
-                          在每一步中，发现更好的自己。
+                          {t('home.singleDescription2')}
                         </p>
                       </div>
                       <ModeIllustration mode="single" />
                     </div>
-                    <div className="feature-tags">
+                    <div className="feature-tags flex gap-[15px]">
                       <span>
                         <Sparkles size={13} />
-                        三档难度
+                        {t('home.difficulties')}
                       </span>
                       <span>
                         <ShieldCheck size={13} />
-                        自在练习
+                        {t('home.practice')}
                       </span>
                     </div>
                     <button
@@ -308,53 +315,53 @@ export default function App() {
                       {hasConfigured && preferences.mode === 'single' ? (
                         <>
                           <Check size={17} />
-                          再开一局 · 选择执子
+                          {t('home.playAgain')}
                         </>
                       ) : (
                         <>
-                          选择单人模式
+                          {t('home.chooseSingle')}
                           <ArrowRight size={17} />
                         </>
                       )}
                     </button>
                   </article>
                   <article className="mode-card local-card">
-                    <div className="card-topline">
+                    <div className="card-topline flex items-center justify-between">
                       <span className="mode-label">
                         <span className="status-dot" />
-                        双人模式
+                        {t('home.localMode')}
                       </span>
                       <span className="card-index">02</span>
                     </div>
                     <div className="mode-card-body">
                       <div className="mode-copy">
                         <h3>
-                          好友对弈
+                          {t('home.friends')}
                           <ArrowRight className="heading-arrow" size={20} />
                         </h3>
                         <p>
-                          一方棋盘，两位好友。
+                          {t('home.localDescription1')}
                           <br />
-                          面对面，来一场有来有回的较量。
+                          {t('home.localDescription2')}
                         </p>
                       </div>
                       <ModeIllustration mode="local" />
                     </div>
-                    <div className="feature-tags">
+                    <div className="feature-tags flex gap-[15px]">
                       <span>
                         <Monitor size={13} />
-                        本地双人
+                        {t('home.localFeature')}
                       </span>
                       <span>
                         <Coffee size={13} />
-                        同享乐趣
+                        {t('home.fun')}
                       </span>
                     </div>
                     <button
                       className="mode-button local-button"
                       onClick={() => chooseMode('local')}
                     >
-                      开始双人对弈
+                      {t('home.startLocal')}
                       <ArrowRight size={17} />
                     </button>
                   </article>
@@ -363,34 +370,39 @@ export default function App() {
                   <div className="selection-summary" aria-live="polite">
                     <span>
                       <Check size={15} />
-                      本次设置
+                      {t('home.selection')}
                     </span>
                     <p>
-                      {`人机对弈 · ${difficulty} · ${preferences.color === 'black' ? '执黑先行' : '执白后行'}`}
+                      {t('game.summary', {
+                        difficulty,
+                        side: t(
+                          preferences.color === 'black' ? 'game.blackSide' : 'game.whiteSide',
+                        ),
+                      })}
                     </p>
                     <button onClick={() => chooseMode(preferences.mode)}>
-                      修改
+                      {t('common.edit')}
                       <ChevronRight size={14} />
                     </button>
                   </div>
                 )}
               </section>
 
-              <section className="rules-strip" aria-label="五子棋入门">
+              <section className="rules-strip" aria-label={t('home.introLabel')}>
                 <div className="rules-symbol">
                   <BookOpen size={21} strokeWidth={1.5} />
                 </div>
                 <div className="rules-copy">
-                  <h3>初次见面？三十秒认识五子棋。</h3>
-                  <p>黑棋先行，轮流落子。横、竖、斜，率先连成五子即获胜。</p>
+                  <h3>{t('home.introTitle')}</h3>
+                  <p>{t('home.introText')}</p>
                 </div>
-                <button className="text-button" onClick={() => setPanel('rules')}>
-                  了解规则
+                <button className="text-button" onClick={() => setPanel(Panel.RULES)}>
+                  {t('home.readRules')}
                   <ArrowRight size={16} />
                 </button>
               </section>
               <footer className="footer">
-                <span>一局一会，乐在其中。</span>
+                <span>{t('home.footer')}</span>
                 <span>
                   MADE FOR THE LOVE OF THE GAME<span className="footer-flower">✳</span>
                 </span>
@@ -407,118 +419,21 @@ export default function App() {
           onConfirm={onConfirm}
         />
       )}
-      {panel === 'rules' && (
-        <Modal
-          title="五子相连，就这么简单。"
-          subtitle="只需记住三个小规则，就能开始你的第一局。"
-          onClose={() => setPanel(null)}
-          wide
-        >
-          <div className="rule-steps">
-            <div>
-              <span className="rule-number">01</span>
-              <h3>黑先白后</h3>
-              <p>在 15 × 15 的棋盘交叉点落子。黑棋先行，双方交替，每回合落一子。</p>
-            </div>
-            <div>
-              <span className="rule-number">02</span>
-              <h3>落子生根</h3>
-              <p>棋子只能落在空交叉点。落下后不能移动，也不能叠在已有棋子上。</p>
-            </div>
-            <div>
-              <span className="rule-number">03</span>
-              <h3>五子成线</h3>
-              <p>横向、纵向或斜向，先连成五颗同色棋子的一方获胜。长连同样有效。</p>
-            </div>
-          </div>
-          <div className="winning-example" aria-label="黑棋横向五子连线获胜示意">
-            {[0, 1, 2, 3, 4].map((i) => (
-              <span key={i} className="small-stone stone-black" />
-            ))}
-            <span>
-              <Check size={15} />
-              五子连珠
-            </span>
-          </div>
-          <div className="rule-notice">
-            <CircleHelp size={18} />
-            <p>弈间采用自由五子棋规则，不设三三、四四等禁手。棋盘下满而无人获胜时，双方和棋。</p>
-          </div>
-          <button className="primary-button save-button" onClick={() => setPanel(null)}>
-            {activeMode ? '明白了，继续对弈' : '明白了，返回大厅'}
-            <ArrowRight size={17} />
-          </button>
-        </Modal>
-      )}
-      {panel === 'history' && (
-        <Modal
-          title="每一局，都值得回味。"
-          subtitle="你的棋间故事，将从第一颗棋子开始。"
-          onClose={() => setPanel(null)}
-        >
-          <div className="empty-state">
-            <div className="empty-board" aria-hidden="true">
-              <span className="small-stone stone-black" />
-              <span className="small-stone stone-white" />
-            </div>
-            <h3>还没有对局记录</h3>
-            <p>
-              对局记录功能尚未开放。
-              <br />
-              当前棋局仅在本次对弈中保留。
-            </p>
-          </div>
-          <button className="primary-button save-button" onClick={goHome}>
-            回到对弈大厅
-            <ArrowRight size={17} />
-          </button>
-        </Modal>
-      )}
-      {panel === 'settings' && (
-        <Modal
-          title="让棋室，更合你意。"
-          subtitle="一点小调整，找到最舒服的对弈状态。"
-          onClose={() => setPanel(null)}
-        >
-          <div className="setting-row">
-            <div>
-              <h3>对局音效</h3>
-              <p>落子时轻敲木棋盘，获胜划线时听见铅笔划过纸面。</p>
-            </div>
-            <button
-              className={`toggle-switch ${sound ? 'on' : ''}`}
-              role="switch"
-              aria-checked={sound}
-              aria-label="对局音效"
-              onClick={toggleSound}
-            >
-              <span />
-            </button>
-          </div>
-          <div className="settings-about">
-            <span className="brand-mark">
-              <i />
-              <i />
-              <i />
-              <i />
-            </span>
-            <div>
-              <strong>弈间 · GOMOKU CLUB</strong>
-              <p>v0.1.0 · 人机与本地双人对弈</p>
-            </div>
-          </div>
-          <p className="settings-footnote">
-            设置仅在本次打开期间有效，刷新或重启后恢复默认。界面动效跟随系统的减少动态效果偏好。
-          </p>
-        </Modal>
-      )}
+      <AppPanels
+        panel={panel}
+        playing={activeMode !== null}
+        sound={sound}
+        toggleSound={toggleSound}
+        onClose={() => setPanel(null)}
+        onHome={goHome}
+      />
       {toast && (
         <div className="toast" role="status">
           <span>
             <Check size={15} />
           </span>
-          {toast}
-          <button onClick={() => setToast('')} aria-label="关闭提示">
+          {t(toast)}
+          <button onClick={() => setToast('')} aria-label={t('common.closeToast')}>
             <X size={15} />
           </button>
         </div>

@@ -16,7 +16,7 @@ await mkdir(profile, { recursive: true });
 const environment = { ...process.env };
 delete environment.ELECTRON_RUN_AS_NODE;
 delete environment.GOMOKU_API_PORT;
-delete environment.VITE_DEV_SERVER_URL;
+delete environment.GOMOKU_DEV_SERVER_URL;
 
 let app;
 let forcedExitBackends = [];
@@ -29,9 +29,16 @@ try {
   });
   const window = await app.firstWindow();
   const errors = [];
+  const failedAssets = [];
   window.on('pageerror', (error) => errors.push(error.message));
+  window.on('requestfailed', (request) => failedAssets.push(request.url()));
   await expect(window.getByRole('button', { name: '选择单人模式' })).toBeEnabled();
   expect(window.url()).toMatch(/^file:/);
+  await expect(window.locator('.mode-grid')).toHaveCSS('display', 'grid');
+  await expect(window.getByRole('combobox', { name: '界面语言' })).toHaveCSS(
+    'background-color',
+    'rgb(246, 247, 242)',
+  );
   const health = await window.evaluate(() => window.desktop.getHealth());
   expect(health.service).toBe('yijian-lobby');
   await expect
@@ -65,6 +72,16 @@ try {
   await expect(window.locator('.game-stone.stone-white')).toHaveCount(1, { timeout: 10000 });
   await expect(window.locator('.game-stone.stone-black')).toHaveCount(1);
   await expect(window.getByTestId('chart-point-black')).toHaveCount(3);
+  await window.getByRole('combobox', { name: '界面语言' }).selectOption('en');
+  await expect(window).toHaveTitle('Yijian · Gomoku');
+  await expect(window.getByRole('heading', { name: 'Your move, Rapfi.' })).toBeVisible();
+  await expect(window.locator('.game-stone')).toHaveCount(2);
+  await expect(window.getByTestId('chart-point-black')).toHaveCount(3);
+  await window.getByRole('button', { name: 'Undo', exact: true }).click();
+  await expect(window.locator('.game-stone')).toHaveCount(0);
+  await window.getByRole('combobox', { name: 'Language' }).selectOption('zh-CN');
+  await window.getByRole('button', { name: /^H8，/ }).click();
+  await expect(window.locator('.game-stone')).toHaveCount(2, { timeout: 10000 });
   await window.screenshot({
     path: path.join(root, '.local/electron-single-black.png'),
     fullPage: true,
@@ -72,10 +89,12 @@ try {
   await window.getByRole('button', { name: '悔棋', exact: true }).click();
   await expect(window.locator('.game-stone')).toHaveCount(0);
   await window.getByRole('button', { name: '关闭对局音效' }).click();
+  await window.getByRole('combobox', { name: '界面语言' }).selectOption('en');
   expect(
     await window.evaluate(() => ({ local: localStorage.length, session: sessionStorage.length })),
   ).toEqual({ local: 0, session: 0 });
   await window.reload();
+  await expect(window.locator('html')).toHaveAttribute('lang', 'zh-CN');
   await expect(window.getByRole('button', { name: '关闭对局音效' })).toBeVisible();
   await window.getByRole('button', { name: '选择单人模式' }).click();
   await expect(window.locator('input[name="difficulty"][value="normal"]')).toBeChecked();
@@ -143,6 +162,7 @@ try {
   await expect(window.getByRole('heading', { name: '轮到黑棋落子' })).toBeVisible();
   expect(await window.evaluate(() => typeof window.require)).toBe('undefined');
   expect(errors).toEqual([]);
+  expect(failedAssets).toEqual([]);
   // Reuse the profile to verify a complete restart, not just a page reload.
   await window.getByRole('button', { name: '返回首页', exact: true }).click();
   await window.getByRole('button', { name: '关闭对局音效' }).click();

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, type FormEvent } from 'react';
 import { ArrowRight, Check, Sparkles } from 'lucide-react';
 import Modal from './Modal';
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export default function SetupDialog({ preferences, onClose, onConfirm }: Props) {
+  const { t } = useTranslation();
   const [draft, setDraft] = useState<GamePreferences>({ ...preferences, mode: 'single' });
 
   function submit(event: FormEvent) {
@@ -18,27 +20,27 @@ export default function SetupDialog({ preferences, onClose, onConfirm }: Props) 
   }
 
   return (
-    <Modal title="一个人的棋力修行" subtitle="选择你的执子，与本机 Rapfi 过招。" onClose={onClose}>
+    <Modal title={t('setup.title')} subtitle={t('setup.subtitle')} onClose={onClose}>
       <form onSubmit={submit}>
         <div className="setup-mode">
           <Sparkles size={21} />
-          <span>单人模式 · 人机对弈</span>
+          <span>{t('setup.mode')}</span>
           <span className="mini-badge">15 × 15</span>
         </div>
         <fieldset>
-          <legend>选择棋力</legend>
-          <div className="difficulty-options">
+          <legend>{t('setup.difficulty')}</legend>
+          <div className="difficulty-options grid grid-cols-3 gap-[9px]">
             {DIFFICULTIES.map((option) => (
               <label
-                key={option.value}
-                className={`difficulty-option ${draft.difficulty === option.value ? 'is-selected' : ''}`}
+                key={option}
+                className={`difficulty-option ${draft.difficulty === option ? 'is-selected' : ''}`}
               >
                 <input
                   type="radio"
                   name="difficulty"
-                  value={option.value}
-                  checked={draft.difficulty === option.value}
-                  onChange={() => setDraft({ ...draft, difficulty: option.value })}
+                  value={option}
+                  checked={draft.difficulty === option}
+                  onChange={() => setDraft({ ...draft, difficulty: option })}
                 />
                 <span className="difficulty-level" aria-hidden="true">
                   {[1, 2, 3].map((level) => (
@@ -48,20 +50,18 @@ export default function SetupDialog({ preferences, onClose, onConfirm }: Props) 
                     />
                   ))}
                 </span>
-                <strong>{option.label}</strong>
+                <strong>{t(`difficulty.${option}.label`)}</strong>
                 <span className="radio-indicator">
-                  {draft.difficulty === option.value && <Check size={11} />}
+                  {draft.difficulty === option && <Check size={11} />}
                 </span>
               </label>
             ))}
           </div>
-          <p className="field-hint">
-            {DIFFICULTIES.find((option) => option.value === draft.difficulty)?.description}
-          </p>
+          <p className="field-hint">{t(`difficulty.${draft.difficulty}.description`)}</p>
         </fieldset>
         <fieldset>
-          <legend>你的执子</legend>
-          <div className="color-options">
+          <legend>{t('setup.color')}</legend>
+          <div className="color-options grid grid-cols-2 gap-[10px]">
             {(['black', 'white'] as const).map((color) => (
               <label
                 key={color}
@@ -75,7 +75,7 @@ export default function SetupDialog({ preferences, onClose, onConfirm }: Props) 
                   onChange={() => setDraft({ ...draft, color })}
                 />
                 <span className={`small-stone stone-${color}`} />
-                <span>{color === 'black' ? '执黑 · 先行' : '执白 · 后行'}</span>
+                <span>{color === 'black' ? t('setup.black') : t('setup.white')}</span>
                 {draft.color === color && <Check size={16} />}
               </label>
             ))}
@@ -83,11 +83,12 @@ export default function SetupDialog({ preferences, onClose, onConfirm }: Props) 
         </fieldset>
         <div className="setup-rule">
           <span className="status-dot" />
-          自由五子棋<span>黑棋先行 · 五子相连获胜 · 无禁手</span>
+          {t('setup.rules')}
+          <span>{t('setup.ruleHint')}</span>
         </div>
-        <p className="scope-note">黑棋先行；选择执白时，Rapfi 会先落子。设置仅本次有效。</p>
+        <p className="scope-note">{t('setup.note')}</p>
         <button className="primary-button save-button" type="submit">
-          开始人机对弈
+          {t('setup.start')}
           <ArrowRight size={18} />
         </button>
       </form>

@@ -77,7 +77,7 @@ try {
     `--server.port=${apiPort}`,
   ]);
   await waitFor(`http://127.0.0.1:${apiPort}/api/health`);
-  run(process.execPath, ['node_modules/vite/bin/vite.js']);
+  run(process.execPath, ['node_modules/@rsbuild/core/bin/rsbuild.js', 'dev']);
   await waitFor(`http://127.0.0.1:${webPort}`);
   console.log(`\n弈间已就绪：http://127.0.0.1:${webPort}\n`);
   if (process.argv.includes('--desktop')) {
@@ -85,7 +85,7 @@ try {
     const environment = {
       ...process.env,
       GOMOKU_API_PORT: String(apiPort),
-      VITE_DEV_SERVER_URL: `http://127.0.0.1:${webPort}`,
+      GOMOKU_DEV_SERVER_URL: `http://127.0.0.1:${webPort}`,
     };
     delete environment.ELECTRON_RUN_AS_NODE;
     const child = spawn(electron, ['.'], {

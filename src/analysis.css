@@ -5,12 +5,7 @@
   background: linear-gradient(145deg, #f5f7ef, #edf2e6);
   min-width: 0;
 }
-.analysis-title {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
+
 .analysis-title h2 {
   font-family: var(--serif);
   font-size: 20px;
@@ -51,9 +46,6 @@
   stroke-dasharray: 2 4;
 }
 .analysis-values {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
   margin-bottom: 18px;
 }
 .analysis-values span {

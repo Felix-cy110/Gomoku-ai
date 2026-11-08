@@ -1,12 +1,13 @@
+import { useTranslation } from 'react-i18next';
 import { useState, type KeyboardEvent, type PointerEvent } from 'react';
 import { AnalysisSource, type PositionAnalysis, type Probabilities } from '../../shared/analysis';
 import type { AnalysisPoint } from '../game/analysis';
 import { coordinate } from '../game/gomoku';
 
 const SERIES = [
-  { key: 'blackWin', label: '黑胜', className: 'black' },
-  { key: 'whiteWin', label: '白胜', className: 'white' },
-  { key: 'draw', label: '和棋', className: 'draw' },
+  { key: 'blackWin', label: 'chart.blackWin', className: 'black' },
+  { key: 'whiteWin', label: 'chart.whiteWin', className: 'white' },
+  { key: 'draw', label: 'chart.draw', className: 'draw' },
 ] as const;
 const PLOT = { width: 280, height: 232, left: 38, right: 266, top: 16, bottom: 198 };
 const PERCENT_TICKS = [0, 25, 50, 75, 100];
@@ -18,6 +19,7 @@ interface Props {
 }
 
 export default function WinRateChart({ points, moveHistory, result }: Props) {
+  const { t } = useTranslation();
   const [selectedMove, setSelectedMove] = useState<number | null>(null);
   const moves = moveHistory.length;
   const inspectedMove = selectedMove ?? moves;
@@ -30,10 +32,10 @@ export default function WinRateChart({ points, moveHistory, result }: Props) {
   const x = (move: number) => PLOT.left + (move / maxMove) * (PLOT.right - PLOT.left);
   const y = (probability: number) => PLOT.bottom - probability * (PLOT.bottom - PLOT.top);
   const summary = inspected
-    ? SERIES.map((series) => `${series.label} ${(inspected[series.key] * 100).toFixed(1)}%`).join(
-        '，',
-      )
-    : '暂无分析结果';
+    ? SERIES.map(
+        (series) => `${t(series.label)} ${(inspected[series.key] * 100).toFixed(1)}%`,
+      ).join(t('chart.separator'))
+    : t('chart.empty');
 
   function pathFor(key: keyof Probabilities) {
     return points
@@ -80,18 +82,21 @@ export default function WinRateChart({ points, moveHistory, result }: Props) {
   return (
     <>
       <div className="analysis-position">
-        <span>{selectedMove === null ? '当前局面' : '历史局面'}</span>
+        <span>{selectedMove === null ? t('chart.current') : t('chart.history')}</span>
         <strong data-testid="analysis-move">
-          第 {inspectedMove} 手 ·{' '}
-          {inspectedMove === 0 ? '开局' : coordinate(moveHistory[inspectedMove - 1])}
+          {t('chart.move', {
+            count: inspectedMove,
+            coordinate:
+              inspectedMove === 0 ? t('chart.opening') : coordinate(moveHistory[inspectedMove - 1]),
+          })}
         </strong>
       </div>
-      <div className="analysis-values" aria-live="polite" aria-atomic="true">
+      <div className="analysis-values grid grid-cols-3 gap-2" aria-live="polite" aria-atomic="true">
         {SERIES.map((series) => (
           <div key={series.key}>
             <span>
               <i className={`chart-key chart-${series.className}`} />
-              {series.label}
+              {t(series.label)}
             </span>
             <strong data-testid={inspected ? `probability-${series.className}` : undefined}>
               {inspected ? `${(inspected[series.key] * 100).toFixed(1)}%` : '—'}
@@ -103,11 +108,11 @@ export default function WinRateChart({ points, moveHistory, result }: Props) {
         className="win-rate-chart"
         role="slider"
         tabIndex={0}
-        aria-label="查看各手胜率"
+        aria-label={t('chart.label')}
         aria-valuemin={0}
         aria-valuemax={moves}
         aria-valuenow={inspectedMove}
-        aria-valuetext={`第 ${inspectedMove} 手，${summary}`}
+        aria-valuetext={t('chart.value', { count: inspectedMove, summary })}
         onKeyDown={inspectKey}
         onBlur={() => setSelectedMove(null)}
         onPointerLeave={(event) => {
@@ -140,7 +145,7 @@ export default function WinRateChart({ points, moveHistory, result }: Props) {
             </text>
           ))}
           <text className="chart-axis" x={PLOT.right} y={PLOT.height - 1} textAnchor="end">
-            手数
+            {t('chart.moves')}
           </text>
           {SERIES.map((series) => (
             <g key={series.key} className={`chart-series chart-${series.className}`}>
@@ -173,17 +178,17 @@ export default function WinRateChart({ points, moveHistory, result }: Props) {
               y={105}
               textAnchor="middle"
             >
-              等待局面分析
+              {t('chart.waiting')}
             </text>
           )}
         </svg>
       </div>
       <p className="chart-inspection-note">
         {selectedMove !== null && !inspected
-          ? '这一手尚无分析结果'
+          ? t('chart.missing')
           : inspected?.source === AnalysisSource.TERMINAL
-            ? '终局概率由对局规则确定'
-            : '悬停、轻触或用方向键查看各手'}
+            ? t('chart.terminal')
+            : t('chart.inspect')}
       </p>
     </>
   );

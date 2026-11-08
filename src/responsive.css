@@ -616,6 +616,54 @@
   }
 }
 
+/* 英文文案更长，允许标题与状态在可用宽度内换行。 */
+:lang(en) .hero h1,
+:lang(en) .section-heading h2,
+:lang(en) .modal-heading h2 {
+  letter-spacing: 0;
+}
+.topbar-actions {
+  flex-shrink: 0;
+}
+@media (max-width: 540px) {
+  .topbar .avatar,
+  .topbar-divider {
+    display: none;
+  }
+  :lang(en) .setup-rule {
+    flex-wrap: wrap;
+  }
+  :lang(en) .color-option {
+    gap: 6px;
+    padding: 10px;
+  }
+  :lang(en) .hero h1 {
+    font-size: 32px;
+  }
+  :lang(en) .mode-illustration {
+    transform: scale(0.6);
+    transform-origin: top right;
+    top: 20px;
+    right: -5px;
+  }
+  :lang(en) .mode-copy h3 {
+    font-size: 23px;
+  }
+  :lang(en) .mode-copy p {
+    max-width: 180px;
+  }
+  :lang(en) .rules-strip {
+    display: grid;
+    grid-template-columns: 34px minmax(0, 1fr);
+    gap: 12px;
+  }
+  :lang(en) .rules-strip .text-button {
+    grid-column: 2;
+    justify-self: start;
+    margin: 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
