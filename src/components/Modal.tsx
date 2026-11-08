@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useEffect, useRef, type ReactNode } from 'react';
 import { X } from 'lucide-react';
 
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export default function Modal({ title, subtitle, children, onClose, wide }: Props) {
+  const { t } = useTranslation();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const closeRef = useRef(onClose);
   closeRef.current = onClose;
@@ -50,7 +52,11 @@ export default function Modal({ title, subtitle, children, onClose, wide }: Prop
         }
       }}
     >
-      <button className="icon-button modal-close" onClick={onClose} aria-label="关闭弹窗">
+      <button
+        className="icon-button modal-close"
+        onClick={onClose}
+        aria-label={t('common.closeDialog')}
+      >
         <X size={20} />
       </button>
       <div className="modal-heading">

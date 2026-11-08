@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 const stones = [
   [7, 7, 'black'],
   [8, 7, 'white'],
@@ -15,6 +16,7 @@ const stones = [
 ] as const;
 
 export default function BoardArt() {
+  const { t } = useTranslation();
   return (
     <div className="board-art" aria-hidden="true">
       <div className="board-orbit orbit-one" />
@@ -119,7 +121,7 @@ export default function BoardArt() {
       </svg>
       <div className="board-caption">
         <span className="caption-stone" />
-        一黑一白，无限可能
+        {t('home.caption')}
         <span className="caption-line" />
       </div>
       <span className="board-coordinate">H8 · YOUR NEXT MOVE</span>

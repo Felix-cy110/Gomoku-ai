@@ -1,0 +1,16 @@
+@layer theme, base, components, utilities;
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities);
+
+/* 沿用棋盘的现有基础重置，避免 Preflight 改变按钮、SVG 与 dialog 的原生行为。 */
+/* 专用 CSS 也引用这些变量，显式保留所有主题 token。 */
+@theme static {
+  --color-forest: #315b48;
+  --color-forest-dark: #254b3c;
+  --color-ink: #303b33;
+  --color-surface: #f6f7f2;
+  --color-muted: #92968d;
+  --color-line: #e6e8df;
+  --font-sans: 'Noto Sans SC Variable', 'Microsoft YaHei', sans-serif;
+  --font-serif: 'Noto Serif SC Variable', 'SimSun', serif;
+}

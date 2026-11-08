@@ -8,6 +8,7 @@ import {
 import { retainAnalysisHistory, terminalAnalysis, type AnalysisPoint } from '../game/analysis';
 import type { GameState } from '../game/gomoku';
 import type { Difficulty } from '../../shared/game-types';
+import { AnalysisIssue } from '../types/analysis';
 
 const CONNECTION_ERROR: EngineStatus = {
   state: EngineState.ERROR,
@@ -23,7 +24,7 @@ export function usePositionAnalysis(game: GameState, session = 0, computerDiffic
   const [snapshot, setSnapshot] = useState<{
     game: GameState;
     result?: PositionAnalysis;
-    error?: string;
+    error?: AnalysisIssue;
     computerMove?: number;
   }>();
   const [attempt, setAttempt] = useState(0);
@@ -105,23 +106,31 @@ export function usePositionAnalysis(game: GameState, session = 0, computerDiffic
                   setSnapshot({
                     game,
                     result: reply.analysis,
-                    error: '模型返回了无效落点，请重试。',
+                    error: AnalysisIssue.INVALID_MOVE,
                   });
                 else setSnapshot({ game, result: reply.analysis, computerMove: move });
               } else if (!moveReply.ok)
-                setSnapshot({ game, result: reply.analysis, error: moveReply.message });
+                setSnapshot({
+                  game,
+                  result: reply.analysis,
+                  error:
+                    moveReply.code === AnalysisError.FAILED
+                      ? AnalysisIssue.SEARCH_FAILED
+                      : moveReply.code,
+                });
               else
                 setSnapshot({
                   game,
                   result: reply.analysis,
-                  error: '模型响应与当前请求不匹配，请重试。',
+                  error: AnalysisIssue.MISMATCHED_REPLY,
                 });
             }
           } else if (!reply.ok && reply.code !== AnalysisError.CANCELLED)
-            setSnapshot({ game, error: reply.message });
+            setSnapshot({ game, error: reply.code });
+          else if (reply.ok) setSnapshot({ game, error: AnalysisIssue.MISMATCHED_REPLY });
         })
         .catch(() => {
-          if (!disposed) setSnapshot({ game, error: CONNECTION_ERROR.message });
+          if (!disposed) setSnapshot({ game, error: AnalysisIssue.CONNECTION });
         });
     }, 120);
     return () => {
@@ -151,13 +160,8 @@ export function usePositionAnalysis(game: GameState, session = 0, computerDiffic
     error: current?.error,
     points: terminal ? [...points, { moveHistory: game.moveHistory, analysis: terminal }] : points,
     result: terminal ?? current?.result,
-    message: terminal
-      ? '本局已结束'
-      : !bridge
-        ? '请在桌面客户端使用本地分析'
-        : status.state !== EngineState.READY
-          ? status.message
-          : (current?.error ?? '正在分析当前局面…'),
+    available: Boolean(bridge),
+    state: status.state,
     canRetry:
       Boolean(bridge) &&
       !terminal &&

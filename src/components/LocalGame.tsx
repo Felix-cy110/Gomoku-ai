@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { ArrowLeft, ArrowUpRight, BookOpen, RotateCcw, Undo2 } from 'lucide-react';
 import { BOARD_SIZE, coordinate, createGame, playMove, undoMove } from '../game/gomoku';
@@ -5,7 +6,7 @@ import WinningLine from './WinningLine';
 import AnalysisPanel from './AnalysisPanel';
 import { usePositionAnalysis } from '../hooks/usePositionAnalysis';
 import { undoPlayerTurn } from '../game/single-player';
-import { DIFFICULTIES, type GamePreferences } from '../types';
+import { type GamePreferences } from '../types';
 import '../game.css';
 
 interface Props {
@@ -20,6 +21,7 @@ const STAR_POINTS = [48, 56, 112, 168, 176];
 const CENTER = 112;
 
 export default function LocalGame({ onExit, onRules, onStone, soundEnabled, opponent }: Props) {
+  const { t } = useTranslation();
   const [game, setGame] = useState(createGame);
   const [analysisSession, setAnalysisSession] = useState(0);
   const [focusIndex, setFocusIndex] = useState(CENTER);
@@ -40,10 +42,10 @@ export default function LocalGame({ onExit, onRules, onStone, soundEnabled, oppo
   const winningEnd = game.winningLine[game.winningLine.length - 1];
   const status =
     game.result === 'draw'
-      ? '本局和棋'
+      ? t('game.draw')
       : game.result
-        ? `${game.result === 'black' ? '黑棋' : '白棋'}获胜`
-        : `轮到${game.turn === 'black' ? '黑棋' : '白棋'}落子`;
+        ? t('game.win', { color: t(`common.${game.result}`) })
+        : t('game.turn', { color: t(`common.${game.turn}`) });
 
   useEffect(() => {
     if (!computerTurn || analysis.computerMove === undefined) return;
@@ -117,34 +119,37 @@ export default function LocalGame({ onExit, onRules, onStone, soundEnabled, oppo
         <div>
           <button className="game-back" onClick={onExit}>
             <ArrowLeft size={15} />
-            返回首页
+            {t('game.back')}
           </button>
           <span className="eyebrow">A LITTLE FRIENDLY COMPETITION</span>
           <h1 id="game-heading" ref={headingRef} tabIndex={-1}>
-            {opponent ? '与 Rapfi，落子过招。' : '两个人，一盘好棋。'}
+            {opponent ? t('game.singleTitle') : t('game.localTitle')}
           </h1>
           <p>
-            {opponent
-              ? `你执${opponent.color === 'black' ? '黑先行' : '白后行'}，Rapfi 执${opponent.color === 'black' ? '白' : '黑'}。先连成五子的一方获胜。`
-              : '黑白轮流，落子即开始。先连成五子的一方获胜。'}
+            {opponent ? t(`game.singleDescription_${opponent.color}`) : t('game.localDescription')}
           </p>
         </div>
         <span className="game-mode-tag">
           <span className="status-dot" />
           {opponent
-            ? `人机对弈 · ${DIFFICULTIES.find((item) => item.value === opponent.difficulty)?.label} · ${opponent.color === 'black' ? '执黑先行' : '执白后行'}`
-            : '本地双人 · 自由五子棋'}
+            ? t('game.summary', {
+                difficulty: t(`difficulty.${opponent.difficulty}.label`),
+                side: t(opponent.color === 'black' ? 'game.blackSide' : 'game.whiteSide'),
+              })
+            : t('game.localTag')}
         </span>
       </div>
 
-      <div className="game-layout">
+      <div className="game-layout grid grid-cols-[minmax(0,1fr)_280px] items-start gap-[38px]">
         <div className="board-section">
           <div className="board-topline">
             <h2 aria-live="polite" aria-atomic="true">
               {status}
             </h2>
             <span className="board-move-summary">
-              已落 <span data-testid="move-count">{game.moves} 手</span> · 最近{' '}
+              {t('game.movesPrefix')}
+              <span data-testid="move-count">{t('game.moves', { count: game.moves })}</span>
+              {t('game.lastMove')}
               <span data-testid="last-move">
                 {game.lastMove === null ? '—' : coordinate(game.lastMove)}
               </span>
@@ -165,7 +170,7 @@ export default function LocalGame({ onExit, onRules, onStone, soundEnabled, oppo
               ref={boardRef}
               className={`board-grid turn-${game.turn} ${finished ? 'game-finished' : ''}`}
               role="group"
-              aria-label="五子棋棋盘"
+              aria-label={t('game.board')}
               aria-describedby="board-help"
             >
               {game.board.map((stone, index) => {
@@ -179,7 +184,11 @@ export default function LocalGame({ onExit, onRules, onStone, soundEnabled, oppo
                     data-index={index}
                     data-stone={stone ?? 'empty'}
                     className={`board-cell ${row === 0 ? 'edge-top' : ''} ${row === 14 ? 'edge-bottom' : ''} ${col === 0 ? 'edge-left' : ''} ${col === 14 ? 'edge-right' : ''}`}
-                    aria-label={`${coordinate(index)}，${stone ? (stone === 'black' ? '黑棋' : '白棋') : '空位'}${winning ? '，获胜连线' : ''}`}
+                    aria-label={t('game.cell', {
+                      coordinate: coordinate(index),
+                      stone: t(stone ? `common.${stone}` : 'common.empty'),
+                      winning: winning ? t('game.winningCell') : '',
+                    })}
                     aria-disabled={Boolean(stone) || blocked}
                     tabIndex={index === focusIndex ? 0 : -1}
                     onFocus={() => setFocusIndex(index)}
@@ -207,19 +216,19 @@ export default function LocalGame({ onExit, onRules, onStone, soundEnabled, oppo
           </div>
           <p className="board-help" id="board-help">
             {opponent && !window.desktop?.analysis
-              ? '请在桌面客户端与 Rapfi 对弈'
+              ? t('game.desktopOnly')
               : computerTurn
                 ? analysis.canRetry
-                  ? '模型落子暂不可用，请重试分析'
-                  : 'Rapfi 正在思考…'
-                : '点击交叉点落子'}
-            <span>方向键移动 · 空格 / Enter 落子</span>
+                  ? t('game.moveUnavailable')
+                  : t('game.thinking')
+                : t('game.place')}
+            <span>{t('game.keyboard')}</span>
           </p>
         </div>
 
-        <aside className="game-info" aria-label="对局信息">
+        <aside className="game-info" aria-label={t('game.info')}>
           <AnalysisPanel game={game} analysis={analysis} />
-          <div className="game-players">
+          <div className="game-players grid gap-[9px]">
             {(['black', 'white'] as const).map((color) => (
               <div
                 key={color}
@@ -227,45 +236,45 @@ export default function LocalGame({ onExit, onRules, onStone, soundEnabled, oppo
               >
                 <span className={`small-stone stone-${color}`} />
                 <strong>
-                  {color === 'black' ? '黑棋' : '白棋'}
-                  {opponent ? ` · ${opponent.color === color ? '你' : 'Rapfi'}` : ''}
+                  {color === 'black' ? t('common.black') : t('common.white')}
+                  {opponent ? ` · ${opponent.color === color ? t('game.you') : 'Rapfi'}` : ''}
                 </strong>
                 <span>
                   {game.result === color
-                    ? '胜方'
+                    ? t('game.winner')
                     : !finished && game.turn === color
-                      ? '正在思考'
+                      ? t('game.playerThinking')
                       : color === 'black'
-                        ? '先行'
-                        : '后行'}
+                        ? t('game.first')
+                        : t('game.second')}
                 </span>
               </div>
             ))}
           </div>
-          <div className="game-actions">
+          <div className="game-actions grid gap-[10px]">
             <button
               className="undo-button"
               onClick={undo}
               disabled={!canUndo}
-              title={opponent ? '撤回到你上一手之前' : '撤回最近一手'}
+              title={opponent ? t('game.undoTurn') : t('game.undoMove')}
             >
               <Undo2 size={16} aria-hidden="true" />
-              悔棋
+              {t('game.undo')}
             </button>
             <button className="primary-button new-game-button" onClick={restart}>
               <RotateCcw size={16} />
-              {finished ? '再来一局' : '重新开始'}
+              {finished ? t('game.again') : t('game.restart')}
             </button>
           </div>
           <button className="game-rules-button" onClick={onRules}>
             <BookOpen size={15} />
-            查看规则
+            {t('game.rules')}
             <ArrowUpRight size={15} />
           </button>
           <p className="game-small-note">
-            不设禁手，五子及以上连线均获胜。
+            {t('game.note1')}
             <br />
-            此刻，只管享受下一步。
+            {t('game.note2')}
           </p>
         </aside>
       </div>
