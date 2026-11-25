@@ -1,84 +1,88 @@
+<p align="right">
+  <strong>English</strong> | <a href="README.zh-CN.md">简体中文</a>
+</p>
+
 <div align="center">
 
-<img src="docs/assets/readme/cover.webp" alt="弈间 Gomoku Club：一黑一白，落子有趣。暖白与墨绿的五子棋桌面客户端。" width="100%" />
+<img src="docs/assets/readme/cover.webp" alt="Gomoku Club, a warm white and ink green desktop Gomoku app where black and white stones make every move count." width="100%" />
 
-# 弈间 · Gomoku Club
+# Gomoku Club
 
-**与 AI 切磋，或邀好友同坐。**
+**Challenge AI, or share the board with a friend.**
 
-一款在本机运行的五子棋桌面应用。木色棋盘、黑白落子，把时间留给下一步。
+A local-first desktop Gomoku app with a wooden board, black and white stones, and room to think about your next move.
 
-[快速开始](#快速开始) · [功能预览](#功能预览) · [开发文档](docs/development.md) · [参与贡献](CONTRIBUTING.md)
+[Quick Start](#quick-start) · [Feature Tour](#feature-tour) · [Developer Docs](docs/development.md) · [Contributing](CONTRIBUTING.md)
 
-<img src="docs/assets/readme/badges.svg" alt="Windows · macOS · 本机 Rapfi · CPU 推理 · MIT 项目许可" width="520" />
+<img src="docs/assets/readme/badges.svg" alt="Windows · macOS · Local Rapfi · CPU inference · MIT licensed" width="520" />
 
 </div>
 
 ---
 
-## 一方棋盘，两种陪伴
+## One Board, More Ways to Play
 
-| 一个人，慢慢练                                          | 两个人，面对面                             | 每一步，看得见                                       |
-| ------------------------------------------------------- | ------------------------------------------ | ---------------------------------------------------- |
-| 与本机 Rapfi 对弈，选择执黑或执白，用三档棋力调整挑战。 | 共用一台电脑，黑白轮流，点击棋盘就能开始。 | 黑胜、白胜、和棋概率随落子更新，沿曲线回看本局变化。 |
+| Practice at your own pace                                      | Play face-to-face                                      | See every turn take shape                                      |
+| -------------------------------------------------------------- | ------------------------------------------------------ | -------------------------------------------------------------- |
+| Face the local Rapfi engine, choose your side, and pick a level. | Share one computer and take turns placing black and white stones. | Follow black-win, white-win, and draw probabilities as the game unfolds. |
 
-不需要账号，也不需要 API Key。引擎准备完成后，对弈和分析都在自己的电脑上运行。
+No account or API key is required. Once the engine is ready, gameplay and analysis both run on your own computer.
 
-## 功能预览
+## Feature Tour
 
-### 与 Rapfi，落子过招
+### Play against Rapfi
 
-选择「初出茅庐」「棋逢对手」或「高手过招」，再决定先行还是后手。你落一子，Rapfi 在本机思考应对；想换一种走法，悔棋会撤回到你上一手之前。
+Choose Easy, Normal, or Hard, then decide whether to move first or second. After you place a stone, Rapfi thinks locally and responds. If you want to try another line, Undo returns the game to the point before your previous turn.
 
-<img src="docs/assets/readme/single-player.webp" alt="真实桌面客户端中的人机对弈：玩家执黑，Rapfi 执白，右侧显示本局胜率走势和悔棋按钮。" width="100%" />
+<img src="docs/assets/readme/single-player.webp" alt="A real desktop match with the player as black and Rapfi as white, with win-probability trends and an Undo button on the right." width="100%" />
 
-三档棋力对应不同的搜索时间与深度，不代表固定的人类段位。选择执白时，Rapfi 会自动开局。
+The three levels use different search times and depths; they do not represent fixed human ranks. When you choose white, Rapfi opens the game automatically.
 
-### 局面的起伏，不只靠感觉
+### Read the position, move by move
 
-每次落子后，黑胜、白胜与和棋的模型预测都会画进曲线。悬停、轻触，或用方向键查看之前的手数；悔棋后裁剪旧分支，重新开始时清空。
+After every move, the model's black-win, white-win, and draw predictions are added to the chart. Hover, tap, or use the arrow keys to inspect earlier moves. Undo trims the abandoned branch, and restarting clears the history.
 
-<img src="docs/assets/readme/analysis.webp" alt="局面分析实拍：12 手对局的木色棋盘、三条胜率曲线，以及回看第 7 手的历史概率。" width="100%" />
+<img src="docs/assets/readme/analysis.webp" alt="A real position analysis after 12 moves, showing the wooden board, three probability curves, and the historical values at move 7." width="100%" />
 
-概率来自本机 Rapfi NNUE 模型，作为局面参考；未完成分析的手数保留缺口。终局结果由五子棋规则确定。
+The probabilities come from the local Rapfi NNUE model and are provided as position guidance. Moves whose analysis has not finished remain blank. Final results are determined by the Gomoku rules.
 
-### 让一盘棋，有一点手感
+### Give every move some weight
 
-棋子落下，是轻敲木棋盘的声音。五子相连时，连线随着铅笔划纸声画出；还想再想一步，按下「悔棋」就能继续。
+A placed stone taps softly against the wooden board. When five connect, the winning line is drawn to the sound of pencil on paper. If you want one more chance to think, press Undo and continue.
 
 <p align="center">
-  <img src="docs/assets/readme/winning-line.gif" alt="真实客户端动图：黑棋落下第五子，绿色获胜连线逐渐画出，悔棋后连线消失并恢复对局。" width="600" />
+  <img src="docs/assets/readme/winning-line.gif" alt="A real client animation in which black places the fifth stone, a green winning line appears, and Undo removes the line and resumes the game." width="600" />
 </p>
 
-动图无声，音效请在客户端体验。音效可以统一关闭，动画遵循系统的「减少动态效果」设置。
+The GIF is silent; try the client to hear the game sounds. Audio can be muted globally, and animations respect the system's reduced-motion setting.
 
 <details>
-<summary><strong>再看看对弈大厅和执子设置</strong></summary>
+<summary><strong>See the game lobby and side selection</strong></summary>
 
 <p align="center">
-  <img src="docs/assets/readme/lobby.webp" alt="弈间对弈大厅：暖白与墨绿配色，提供人机对弈、好友对弈及玩法指南入口。" width="100%" />
+  <img src="docs/assets/readme/lobby.webp" alt="The Gomoku Club lobby in warm white and ink green, with options for AI play, local two-player play, and the game guide." width="100%" />
 </p>
 <p align="center">
-  <img src="docs/assets/readme/setup.webp" alt="人机对弈设置：三档棋力、执黑先行或执白后行，确认后开始对弈。" width="520" />
+  <img src="docs/assets/readme/setup.webp" alt="AI game setup with three difficulty levels and a choice to play black first or white second." width="520" />
 </p>
 
 </details>
 
-所有界面图均来自当前 Electron 客户端，分析数据由实际加载的本机模型生成；封面与图文排版为项目原创。见 [图片说明](docs/assets/readme/README.md)。
+Every interface image comes from the current Electron client, and the analysis data was generated by the locally loaded model. The cover and editorial layout are original to this project. See the [image notes](docs/assets/readme/README.md).
 
-## 快速开始
+## Quick Start
 
-当前提供**从源码运行的桌面版本**，支持 Windows x64 与 Apple Silicon Mac，尚未提供安装包。macOS 支持尚未在真机上完成验证，遇到问题欢迎反馈。
+The project currently provides a **desktop version that runs from source** on Windows x64 and Apple Silicon Mac. Installers are not available yet. macOS support has not yet been verified on physical hardware, so issue reports are welcome.
 
-### 环境要求
+### Requirements
 
-| 环境         | 要求                                                                                                                                 |
-| ------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
-| 系统         | Windows x64（CPU 支持 SSE4.1），或 Apple Silicon Mac（macOS 14+）；无需独立显卡、CUDA 或 Python                                      |
-| Node.js      | 22.12+，或 24+（项目本地使用 Node 24）                                                                                               |
-| Java         | JDK 17+，确保 `java` 与 `javac` 可用                                                                                                 |
-| Maven        | 3.9+，确保 `mvn` 可用                                                                                                                |
-| 引擎准备工具 | Windows：系统自带的 PowerShell、`tar.exe` 与 .NET Framework 4.x 的 Framework64 `csc.exe`；macOS：系统自带的 `curl`、`tar` 与 `xattr` |
+| Environment         | Requirement                                                                                                                                                     |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Operating system    | Windows x64 with an SSE4.1-capable CPU, or Apple Silicon Mac with macOS 14+; no discrete GPU, CUDA, or Python required                                          |
+| Node.js             | 22.12+, or 24+; the project is developed locally with Node 24                                                                                                   |
+| Java                | JDK 17+ with both `java` and `javac` available                                                                                                                   |
+| Maven               | 3.9+ with `mvn` available                                                                                                                                        |
+| Engine setup tools  | Windows: built-in PowerShell, `tar.exe`, and the Framework64 `csc.exe` from .NET Framework 4.x; macOS: built-in `curl`, `tar`, and `xattr`                      |
 
 ```powershell
 git clone https://github.com/Felix-cy110/Gomoku-ai.git
@@ -87,66 +91,66 @@ npm install
 npm run dev
 ```
 
-启动命令会准备 Rapfi 引擎与模型、构建 Java 服务，并打开桌面窗口。首次需要联网下载约 35 MB 的官方引擎包，后续复用经过校验的缓存；运行时不访问模型服务器。
+The startup command prepares the Rapfi engine and model, builds the Java service, and opens the desktop window. The first run downloads an official engine package of about 35 MB; later runs reuse a verified cache. The app does not contact a model server during play.
 
-打开后，选择「单人模式」与 Rapfi 对弈，或点击「开始双人对弈」与身边的朋友下棋。
+Once the app opens, choose Solo Play to challenge Rapfi or start a two-player game with someone beside you.
 
 <details>
-<summary><strong>浏览器预览与本地生产构建</strong></summary>
+<summary><strong>Browser preview and local production build</strong></summary>
 
-仅预览网页和体验本地双人棋局：
+To preview the web interface and play a local two-player game:
 
 ```powershell
 npm run dev:web
 ```
 
-访问 `http://127.0.0.1:5187`。网页预览不支持本机 Rapfi 分析或人机落子。
+Open `http://127.0.0.1:5187`. The browser preview does not support local Rapfi analysis or AI moves.
 
-构建并启动本地生产版本：
+To build and start the local production version:
 
 ```powershell
 npm run build
 npm start
 ```
 
-当前没有内置 JRE，仍需本机 Java 环境。端口调整、后端单独开发和验证命令见 [开发与验证](docs/development.md)。
+The app does not bundle a JRE, so Java must still be installed locally. See [Development and Verification](docs/development.md) for port configuration, standalone backend development, and verification commands.
 
 </details>
 
-## 使用前了解一下
+## Before You Play
 
-- **规则**：15 × 15 自由五子棋，黑棋先行，不设禁手，连续五子及以上获胜；满盘无人获胜则和棋。
-- **悔棋**：双人模式每次撤回一手；单人模式撤回到玩家上一手之前，执白时保留模型的开局棋子。终局后也可悔棋继续。
-- **本地运行**：不需要登录，不使用云端模型服务。浏览器可双人对弈，本机 AI 功能需要 Windows x64 或 Apple Silicon Mac 上的桌面客户端。
-- **当前范围**：尚未实现对局记录和棋谱保存，也不持久化用户设置。刷新、返回首页或关闭应用会结束本局；刷新或重启后恢复普通难度、执黑和音效开启。
+- **Rules:** 15 × 15 freestyle Gomoku. Black moves first, there are no forbidden moves, and five or more consecutive stones win. A full board without a winner is a draw.
+- **Undo:** Two-player mode removes one move at a time. Solo mode returns to the point before the player's previous turn; when the player is white, Rapfi's opening stone remains. You can also undo after the game ends and continue playing.
+- **Local operation:** No login or cloud model service is used. The browser supports two-player games, while local AI features require the desktop client on Windows x64 or Apple Silicon Mac.
+- **Current scope:** Match history and game-record export are not implemented, and user settings are not persisted. Refreshing, returning home, or closing the app ends the current game. After a refresh or restart, the app returns to Normal difficulty, black stones, and enabled audio.
 
-## 面向开发者
+## For Developers
 
 **Electron · React · TypeScript · Spring Boot 3.5.11 · Java 17 · Rapfi NNUE**
 
-前端使用 React + TypeScript、Tailwind CSS、Rsbuild 和 i18next。顶部可切换简体中文 / English，棋局和分析进度保持不变；语言偏好仅本次有效。
+The frontend uses React, TypeScript, Tailwind CSS, Rsbuild, and i18next. Players can switch between Simplified Chinese and English from the top bar without interrupting the game or its analysis progress. The language preference lasts for the current session only.
 
-TypeScript 处理棋局规则，Electron 管理本机引擎，Spring Boot 提供健康检查。渲染进程通过受限 IPC 调用分析能力，不直接访问 Node.js。
+TypeScript implements the game rules, Electron manages the local engine, and Spring Boot provides health checks. The renderer accesses analysis through restricted IPC and does not access Node.js directly.
 
-| 文档                                   | 内容                                              |
-| -------------------------------------- | ------------------------------------------------- |
-| [开发与验证](docs/development.md)      | 环境准备、启动命令、端口配置、构建和测试          |
-| [架构与数据边界](docs/architecture.md) | 模块职责、Spring Boot 分层、API 与内存状态约定    |
-| [本地 Rapfi 分析](docs/rapfi.md)       | 引擎与权重、搜索强度、协议、资源准备及进程回收    |
-| [代码编写规范](AGENT.md)               | 解耦、枚举、命名、测试及中文 Conventional Commits |
+| Document                                         | Contents                                                                 |
+| ------------------------------------------------ | ------------------------------------------------------------------------ |
+| [Development and Verification](docs/development.md) | Environment setup, startup commands, ports, builds, and tests         |
+| [Architecture and Data Boundaries](docs/architecture.md) | Module responsibilities, Spring Boot layers, APIs, and in-memory state |
+| [Local Rapfi Analysis](docs/rapfi.md)             | Engine and weights, search strength, protocol, setup, and process cleanup |
+| [Coding Guidelines](AGENT.md)                     | Decoupling, enums, naming, tests, and Chinese Conventional Commits       |
 
-## 参与贡献
+## Contributing
 
-欢迎带来一份反馈、一段代码，或一个更好的下棋体验。
+Bug reports, code contributions, and ideas for a better playing experience are all welcome.
 
-[报告问题](https://github.com/Felix-cy110/Gomoku-ai/issues/new?template=bug_report.yml) · [提出建议](https://github.com/Felix-cy110/Gomoku-ai/issues/new?template=feature_request.yml) · [贡献指南](CONTRIBUTING.md)
+[Report a bug](https://github.com/Felix-cy110/Gomoku-ai/issues/new?template=bug_report.yml) · [Request a feature](https://github.com/Felix-cy110/Gomoku-ai/issues/new?template=feature_request.yml) · [Contribution guide](CONTRIBUTING.md)
 
-项目由 [Felix Sun（@Felix-cy110）](https://github.com/Felix-cy110) 创建与维护。感谢每一位参与者，署名见 [贡献者名单](CONTRIBUTORS.md)，代码贡献见 [GitHub Contributors](https://github.com/Felix-cy110/Gomoku-ai/graphs/contributors)。
+Created and maintained by [Felix Sun (@Felix-cy110)](https://github.com/Felix-cy110). See the [contributors list](CONTRIBUTORS.md) for acknowledgements and [GitHub Contributors](https://github.com/Felix-cy110/Gomoku-ai/graphs/contributors) for code contributions.
 
-## 许可证与致谢
+## License and Acknowledgements
 
-本项目采用 [MIT License](LICENSE)。Rapfi 引擎、模型、字体等第三方资源遵循各自的许可证，详情见 [第三方说明](THIRD_PARTY_NOTICES.md)。
+This project is licensed under the [MIT License](LICENSE). Rapfi, its model, fonts, and other third-party resources remain subject to their respective licenses; see [Third-Party Notices](THIRD_PARTY_NOTICES.md) for details.
 
 ---
 
-<p align="center">一局一会，乐在其中。<br /><sub>MADE FOR THE LOVE OF THE GAME</sub></p>
+<p align="center">One game, one meeting. Enjoy every move.<br /><sub>MADE FOR THE LOVE OF THE GAME</sub></p>
